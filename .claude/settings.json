@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s 'https://alvhbqogclvisuhuhzap.supabase.co/rest/v1/users?limit=1' -H 'apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsdmhicW9nY2x2aXN1aHVoemFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNTc4MjYsImV4cCI6MjA5MjgzMzgyNn0.7BnYuyjtUI0kVquHD7R8WjUuuPQLItsu2iHIu-yDxsM' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsdmhicW9nY2x2aXN1aHVoemFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNTc4MjYsImV4cCI6MjA5MjgzMzgyNn0.7BnYuyjtUI0kVquHD7R8WjUuuPQLItsu2iHIu-yDxsM')",
+      "Bash(curl -s 'https://alvhbqogclvisuhuhzap.supabase.co/rest/v1/profiles?limit=1' -H 'apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsdmhicW9nY2x2aXN1aHVoemFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNTc4MjYsImV4cCI6MjA5MjgzMzgyNn0.7BnYuyjtUI0kVquHD7R8WjUuuPQLItsu2iHIu-yDxsM' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsdmhicW9nY2x2aXN1aHVoemFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNTc4MjYsImV4cCI6MjA5MjgzMzgyNn0.7BnYuyjtUI0kVquHD7R8WjUuuPQLItsu2iHIu-yDxsM')",
+      "Bash(curl -s 'https://alvhbqogclvisuhuhzap.supabase.co/rest/v1/barbershops?limit=1' -H 'apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsdmhicW9nY2x2aXN1aHVoemFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNTc4MjYsImV4cCI6MjA5MjgzMzgyNn0.7BnYuyjtUI0kVquHD7R8WjUuuPQLItsu2iHIu-yDxsM' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsdmhicW9nY2x2aXN1aHVoemFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNTc4MjYsImV4cCI6MjA5MjgzMzgyNn0.7BnYuyjtUI0kVquHD7R8WjUuuPQLItsu2iHIu-yDxsM')"
+    ]
+  }
+}
