@@ -230,7 +230,23 @@ export default function ProfileScreen() {
             </View>
             <View style={styles.statCard}>
               {loading ? <ActivityIndicator color={Colors.primary} /> : <>
-                <Text style={styles.statNum}>{getNextBookingText()}</Text>
+                {stats.nextBooking ? (
+                  <>
+                    <Text style={styles.statNextDay}>
+                      {new Date(stats.nextBooking.booking_date + 'T12:00:00')
+                        .toLocaleDateString('es-CO', { weekday: 'short' }).replace('.', '').toUpperCase()}
+                    </Text>
+                    <Text style={styles.statNextDate} numberOfLines={1} adjustsFontSizeToFit>
+                      {new Date(stats.nextBooking.booking_date + 'T12:00:00')
+                        .toLocaleDateString('es-CO', { day: 'numeric', month: 'short' }).replace('.', '')}
+                    </Text>
+                    <Text style={styles.statNextTime}>
+                      {stats.nextBooking.start_time?.slice(0, 5)}
+                    </Text>
+                  </>
+                ) : (
+                  <Text style={styles.statNum}>–</Text>
+                )}
                 <Text style={styles.statLabel}>Próxima</Text>
               </>}
             </View>
@@ -580,6 +596,9 @@ const styles = StyleSheet.create({
   statCard: { flex: 1, alignItems: 'center', paddingVertical: 18 },
   statCardMid: { borderLeftWidth: 1, borderRightWidth: 1, borderColor: Colors.border },
   statNum: { fontSize: 22, fontWeight: '800', color: Colors.primary },
+  statNextDay: { fontSize: 11, fontWeight: '700', color: Colors.textMuted, letterSpacing: 0.8, marginBottom: 1 },
+  statNextDate: { fontSize: 18, fontWeight: '800', color: Colors.primary, letterSpacing: -0.3 },
+  statNextTime: { fontSize: 12, fontWeight: '600', color: Colors.textSecondary, marginTop: 1 },
   statLabel: { fontSize: 12, color: Colors.textSecondary, marginTop: 3 },
   section: { paddingHorizontal: 16, marginTop: 24 },
   sectionLabel: { fontSize: 12, fontWeight: '700', color: Colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 },
