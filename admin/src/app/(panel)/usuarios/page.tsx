@@ -7,6 +7,7 @@ import EmptyState from '@/components/EmptyState';
 import ConfirmModal from '@/components/ConfirmModal';
 import { IconUsers } from '@/components/Icons';
 import { fmtDate } from '@/lib/utils';
+import { logAdminAction } from '@/lib/audit';
 
 type Usuario = {
   id: string;
@@ -56,11 +57,20 @@ export default function UsuariosPage() {
   async function confirmToggle() {
     if (!pending) return;
     const supabase = createClient();
+    const newState = !pending.current;
     const { error: err } = await supabase
       .from('users')
-      .update({ is_active: !pending.current })
+      .update({ is_active: newState })
       .eq('id', pending.id);
-    if (!err) setUsuarios(prev => prev.map(u => u.id === pending.id ? { ...u, is_active: !pending.current } : u));
+    if (!err) {
+      setUsuarios(prev => prev.map(u => u.id === pending.id ? { ...u, is_active: newState } : u));
+      await logAdminAction(
+        newState ? 'user_activated' : 'user_deactivated',
+        'user',
+        pending.id,
+        { name: pending.name, new_state: newState }
+      );
+    }
     setPending(null);
   }
 

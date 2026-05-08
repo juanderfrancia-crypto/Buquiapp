@@ -25,11 +25,15 @@ export default function RegisterScreen() {
       Alert.alert('Contraseña corta', 'Debe tener al menos 8 caracteres');
       return;
     }
+    if (!['client', 'barber'].includes(role)) {
+      Alert.alert('Error', 'Rol no válido');
+      return;
+    }
     setLoading(true);
     const { error } = await supabase.auth.signUp({
-      email,
+      email: email.trim().toLowerCase(),
       password,
-      options: { data: { name, role } },
+      options: { data: { name: name.trim(), role } },
     });
     setLoading(false);
     if (error) {

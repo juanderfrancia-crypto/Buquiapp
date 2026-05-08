@@ -7,6 +7,7 @@ import EmptyState from '@/components/EmptyState';
 import ConfirmModal from '@/components/ConfirmModal';
 import { IconStore } from '@/components/Icons';
 import { fmtDate } from '@/lib/utils';
+import { logAdminAction } from '@/lib/audit';
 
 type Negocio = {
   id: string;
@@ -62,11 +63,20 @@ export default function NegociosPage() {
   async function confirmToggle() {
     if (!pending) return;
     const supabase = createClient();
+    const newState = !pending.current;
     const { error: err } = await supabase
       .from('barbershops')
-      .update({ is_active: !pending.current })
+      .update({ is_active: newState })
       .eq('id', pending.id);
-    if (!err) setNegocios(prev => prev.map(n => n.id === pending.id ? { ...n, is_active: !pending.current } : n));
+    if (!err) {
+      setNegocios(prev => prev.map(n => n.id === pending.id ? { ...n, is_active: newState } : n));
+      await logAdminAction(
+        newState ? 'shop_activated' : 'shop_deactivated',
+        'barbershop',
+        pending.id,
+        { name: pending.name, new_state: newState }
+      );
+    }
     setPending(null);
   }
 
