@@ -40,29 +40,34 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 4. RLS: admin puede leer y actualizar todos los usuarios
-CREATE POLICY IF NOT EXISTS "admin_read_users" ON public.users
+DROP POLICY IF EXISTS "admin_read_users" ON public.users;
+CREATE POLICY "admin_read_users" ON public.users
   FOR SELECT USING (
     EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role = 'admin')
   );
 
-CREATE POLICY IF NOT EXISTS "admin_update_users" ON public.users
+DROP POLICY IF EXISTS "admin_update_users" ON public.users;
+CREATE POLICY "admin_update_users" ON public.users
   FOR UPDATE USING (
     EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role = 'admin')
   );
 
 -- 5. RLS: admin puede leer y gestionar todos los negocios
-CREATE POLICY IF NOT EXISTS "admin_read_barbershops" ON public.barbershops
+DROP POLICY IF EXISTS "admin_read_barbershops" ON public.barbershops;
+CREATE POLICY "admin_read_barbershops" ON public.barbershops
   FOR SELECT USING (
     EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role = 'admin')
   );
 
-CREATE POLICY IF NOT EXISTS "admin_update_barbershops" ON public.barbershops
+DROP POLICY IF EXISTS "admin_update_barbershops" ON public.barbershops;
+CREATE POLICY "admin_update_barbershops" ON public.barbershops
   FOR UPDATE USING (
     EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role = 'admin')
   );
 
 -- 6. RLS: admin puede leer todas las reservas
-CREATE POLICY IF NOT EXISTS "admin_read_bookings" ON public.bookings
+DROP POLICY IF EXISTS "admin_read_bookings" ON public.bookings;
+CREATE POLICY "admin_read_bookings" ON public.bookings
   FOR SELECT USING (
     EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role = 'admin')
   );
@@ -81,7 +86,8 @@ CREATE TABLE IF NOT EXISTS public.admin_audit_logs (
 ALTER TABLE public.admin_audit_logs ENABLE ROW LEVEL SECURITY;
 
 -- Solo admins pueden leer el log; nadie puede modificarlo ni borrarlo
-CREATE POLICY IF NOT EXISTS "audit_logs_admin_read" ON public.admin_audit_logs
+DROP POLICY IF EXISTS "audit_logs_admin_read" ON public.admin_audit_logs;
+CREATE POLICY "audit_logs_admin_read" ON public.admin_audit_logs
   FOR SELECT USING (
     EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.role = 'admin')
   );
