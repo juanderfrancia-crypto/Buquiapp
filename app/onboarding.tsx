@@ -72,7 +72,6 @@ export default function OnboardingScreen() {
 
         {/* Top bar */}
         <View style={styles.topBar}>
-          <Image source={require('@/assets/images/icono.png')} style={styles.topLogo} />
           {!isLast && (
             <TouchableOpacity onPress={handleSkip} style={styles.skipBtn}>
               <Text style={styles.skipText}>Saltar</Text>
@@ -161,13 +160,12 @@ const styles = StyleSheet.create({
 
   topBar: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     alignItems: 'center',
     paddingHorizontal: 24,
     paddingTop: 8,
     paddingBottom: 4,
   },
-  topLogo: { width: 36, height: 36, borderRadius: 10 },
   skipBtn: {
     paddingHorizontal: 16, paddingVertical: 8,
     borderRadius: 20, backgroundColor: Colors.surfaceGrey,
@@ -183,8 +181,8 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   logoImg: {
-    width: width * 0.65,
-    height: 100,
+    width: width * 0.88,
+    height: 200,
     marginBottom: 48,
   },
   iconCircle: {
