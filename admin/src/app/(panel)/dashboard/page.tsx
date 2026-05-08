@@ -1,13 +1,14 @@
 import { createClient } from '@/lib/supabase-server';
 import StatCard from '@/components/StatCard';
+import BookingsChart, { type ChartDay } from '@/components/BookingsChart';
 import { IconUsers, IconStore, IconCalendar, IconTrendUp, IconClock, IconCheck, IconX } from '@/components/Icons';
+import { fmtDate, fmtTime } from '@/lib/utils';
 
 async function getStats() {
   const supabase = await createClient();
   const today = new Date().toISOString().split('T')[0];
   const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-    .toISOString()
-    .split('T')[0];
+    .toISOString().split('T')[0];
 
   const results = await Promise.allSettled([
     supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'client'),
@@ -26,6 +27,30 @@ async function getStats() {
     results.map(getValue);
 
   return { totalUsers, totalNegocios, reservasHoy, reservasMes, pendientes, confirmadas, canceladas };
+}
+
+async function getBookingsTrend(): Promise<ChartDay[]> {
+  const supabase = await createClient();
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    return {
+      date: d.toISOString().split('T')[0],
+      label: d.toLocaleDateString('es-CO', { weekday: 'short' }).slice(0, 3),
+    };
+  });
+
+  const { data } = await supabase
+    .from('bookings')
+    .select('booking_date')
+    .gte('booking_date', days[0].date)
+    .lte('booking_date', days[6].date);
+
+  return days.map(({ date, label }) => ({
+    day: date,
+    label,
+    count: data?.filter((b: { booking_date: string }) => b.booking_date === date).length ?? 0,
+  }));
 }
 
 type Booking = {
@@ -62,7 +87,11 @@ const STATUS_STYLE: Record<string, string> = {
 };
 
 export default async function DashboardPage() {
-  const [stats, recent] = await Promise.all([getStats(), getRecentBookings()]);
+  const [stats, trend, recent] = await Promise.all([
+    getStats(),
+    getBookingsTrend(),
+    getRecentBookings(),
+  ]);
 
   const totalReservas = stats.pendientes + stats.confirmadas + stats.canceladas;
   const tasaConfirmacion = totalReservas > 0
@@ -70,86 +99,74 @@ export default async function DashboardPage() {
     : 0;
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-sm text-gray-500 mt-0.5">
-          {new Date().toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-        </p>
-      </div>
-
+    <div className="space-y-6">
+      {/* KPI grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          label="Usuarios registrados"
-          value={stats.totalUsers}
-          Icon={IconUsers}
-          iconBg="bg-blue-50"
-          iconColor="text-blue-600"
-        />
-        <StatCard
-          label="Negocios activos"
-          value={stats.totalNegocios}
-          Icon={IconStore}
-          iconBg="bg-indigo-50"
-          iconColor="text-indigo-600"
-        />
-        <StatCard
-          label="Reservas hoy"
-          value={stats.reservasHoy}
-          Icon={IconCalendar}
-          iconBg="bg-violet-50"
-          iconColor="text-violet-600"
-        />
-        <StatCard
-          label="Reservas este mes"
-          value={stats.reservasMes}
-          Icon={IconTrendUp}
-          iconBg="bg-emerald-50"
-          iconColor="text-emerald-600"
-        />
+        <StatCard label="Clientes registrados" value={stats.totalUsers}   Icon={IconUsers}    iconBg="bg-blue-50"    iconColor="text-blue-600" />
+        <StatCard label="Negocios activos"      value={stats.totalNegocios} Icon={IconStore}  iconBg="bg-indigo-50"  iconColor="text-indigo-600" />
+        <StatCard label="Reservas hoy"          value={stats.reservasHoy} Icon={IconCalendar} iconBg="bg-violet-50"  iconColor="text-violet-600" />
+        <StatCard label="Reservas este mes"     value={stats.reservasMes} Icon={IconTrendUp}  iconBg="bg-emerald-50" iconColor="text-emerald-600" />
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl border border-gray-100 p-5">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
+      {/* Chart + estado de reservas */}
+      <div className="grid grid-cols-5 gap-4">
+        {/* Gráfica */}
+        <div className="col-span-3">
+          <BookingsChart data={trend} />
+        </div>
+
+        {/* Estado cards */}
+        <div className="col-span-2 flex flex-col gap-4">
+          <div className="bg-white rounded-xl border border-gray-100 p-5 flex items-center gap-4 flex-1">
+            <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
               <IconClock className="w-4 h-4 text-amber-500" />
             </div>
-            <span className="text-sm font-medium text-gray-600">Pendientes</span>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{stats.pendientes}</p>
+              <p className="text-xs font-medium text-gray-500">Pendientes</p>
+              <p className="text-xs text-gray-400">Esperando confirmación</p>
+            </div>
           </div>
-          <p className="text-3xl font-bold text-gray-900">{stats.pendientes}</p>
-          <p className="text-xs text-gray-400 mt-1">Esperando confirmación</p>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-100 p-5">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
+          <div className="bg-white rounded-xl border border-gray-100 p-5 flex items-center gap-4 flex-1">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
               <IconCheck className="w-4 h-4 text-emerald-600" />
             </div>
-            <span className="text-sm font-medium text-gray-600">Confirmadas</span>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{stats.confirmadas}</p>
+              <p className="text-xs font-medium text-gray-500">Confirmadas</p>
+              <p className="text-xs text-gray-400">Tasa: {tasaConfirmacion}%</p>
+            </div>
           </div>
-          <p className="text-3xl font-bold text-gray-900">{stats.confirmadas}</p>
-          <p className="text-xs text-gray-400 mt-1">Tasa de confirmación: {tasaConfirmacion}%</p>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-100 p-5">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center">
+          <div className="bg-white rounded-xl border border-gray-100 p-5 flex items-center gap-4 flex-1">
+            <div className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
               <IconX className="w-4 h-4 text-red-500" />
             </div>
-            <span className="text-sm font-medium text-gray-600">Canceladas</span>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{stats.canceladas}</p>
+              <p className="text-xs font-medium text-gray-500">Canceladas</p>
+              <p className="text-xs text-gray-400">Total histórico</p>
+            </div>
           </div>
-          <p className="text-3xl font-bold text-gray-900">{stats.canceladas}</p>
-          <p className="text-xs text-gray-400 mt-1">Total histórico</p>
         </div>
       </div>
 
+      {/* Tabla últimas reservas */}
       <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-900">Últimas reservas</h2>
-          <a href="/reservas" className="text-xs font-medium text-blue-600 hover:text-blue-700">Ver todas →</a>
+          <div>
+            <h2 className="text-sm font-semibold text-gray-900">Últimas reservas</h2>
+            <p className="text-xs text-gray-400 mt-0.5">Las 8 más recientes</p>
+          </div>
+          <a href="/reservas" className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1">
+            Ver todas
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3 h-3">
+              <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </a>
         </div>
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-50">
+            <tr className="border-b border-gray-50 bg-gray-50/50">
               <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Cliente</th>
               <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Negocio</th>
               <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Servicio</th>
@@ -159,14 +176,17 @@ export default async function DashboardPage() {
           </thead>
           <tbody className="divide-y divide-gray-50">
             {recent.map((b) => (
-              <tr key={b.id} className="hover:bg-gray-50 transition-colors">
+              <tr key={b.id} className="hover:bg-gray-50/70 transition-colors">
                 <td className="px-6 py-3.5">
                   <p className="font-medium text-gray-900 text-sm">{b.user?.name ?? '—'}</p>
                   <p className="text-xs text-gray-400">{b.user?.email}</p>
                 </td>
                 <td className="px-6 py-3.5 text-sm text-gray-600">{b.barbershop?.name ?? '—'}</td>
                 <td className="px-6 py-3.5 text-sm text-gray-600">{b.notes ?? b.service?.name ?? '—'}</td>
-                <td className="px-6 py-3.5 text-sm text-gray-500 whitespace-nowrap">{b.booking_date} · {b.start_time}</td>
+                <td className="px-6 py-3.5 whitespace-nowrap">
+                  <p className="text-sm text-gray-900">{fmtDate(b.booking_date)}</p>
+                  <p className="text-xs text-gray-400">{fmtTime(b.start_time)}</p>
+                </td>
                 <td className="px-6 py-3.5">
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_STYLE[b.status] ?? 'bg-gray-100 text-gray-600'}`}>
                     {STATUS_LABEL[b.status] ?? b.status}
@@ -176,7 +196,9 @@ export default async function DashboardPage() {
             ))}
             {recent.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-6 py-12 text-center text-sm text-gray-400">Sin reservas aún</td>
+                <td colSpan={5} className="px-6 py-16 text-center text-sm text-gray-400">
+                  Sin reservas aún
+                </td>
               </tr>
             )}
           </tbody>
