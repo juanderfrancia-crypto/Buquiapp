@@ -47,7 +47,7 @@ async function getRecentBookings(): Promise<Booking[]> {
     .order('created_at', { ascending: false })
     .limit(8);
   if (error) return [];
-  return (data as Booking[]) ?? [];
+  return (data as unknown as Booking[]) ?? [];
 }
 
 const STATUS_LABEL: Record<string, string> = {
