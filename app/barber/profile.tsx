@@ -10,9 +10,9 @@ import { decode } from 'base64-arraybuffer';
 import { supabase } from '@/lib/supabase';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { GradientView } from '@/components/ui/GradientView';
 import { useAuthStore } from '@/stores/authStore';
 import { Colors } from '@/constants';
+import { GradientView } from '@/components/ui/GradientView';
 
 interface SettingsRow {
   icon: keyof typeof Ionicons.glyphMap;
@@ -22,14 +22,14 @@ interface SettingsRow {
   danger?: boolean;
 }
 
-export default function ProfileScreen() {
+export default function BarberProfileScreen() {
   const { user, signOut, setUser } = useAuthStore();
-  const [stats, setStats] = useState({ totalBookings: 0, uniqueBarbers: 0, nextBooking: null as any });
+  const [stats, setStats] = useState({ totalBookings: 0, activeServices: 0, rating: 0 });
   const [loading, setLoading] = useState(true);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(user?.avatar_url ?? null);
-  const [uploading, setUploading] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
-  // Edit profile modal
+  // Edit modal
   const [editVisible, setEditVisible] = useState(false);
   const [editName, setEditName] = useState('');
   const [editPhone, setEditPhone] = useState('');
@@ -41,13 +41,54 @@ export default function ProfileScreen() {
   const [helpVisible, setHelpVisible] = useState(false);
   const [aboutVisible, setAboutVisible] = useState(false);
 
-  // Notification permission status
   const [notifStatus, setNotifStatus] = useState<string>('');
 
   useEffect(() => {
     loadStats();
     checkNotifPermission();
+    loadAvatar();
   }, []);
+
+  const loadAvatar = async () => {
+    if (!user?.id) return;
+    const { data } = await supabase.from('users').select('avatar_url').eq('id', user.id).single();
+    if (data?.avatar_url) setAvatarUrl(data.avatar_url);
+  };
+
+  const handlePickAvatar = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permiso necesario', 'Necesitamos acceso a tu galería para cambiar la foto de perfil.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets[0]) return;
+    setUploadingAvatar(true);
+    try {
+      const asset = result.assets[0];
+      const ext = (asset.uri.split('.').pop()?.split('?')[0] ?? 'jpg').toLowerCase();
+      const mime = ext === 'jpg' ? 'image/jpeg' : `image/${ext}`;
+      const path = `${user!.id}/avatar.${ext}`;
+      const base64 = await FileSystem.readAsStringAsync(asset.uri, { encoding: 'base64' });
+      const { error: uploadError } = await supabase.storage
+        .from('shop-images')
+        .upload(path, decode(base64), { contentType: mime, upsert: true });
+      if (uploadError) { Alert.alert('Error al subir', uploadError.message); return; }
+      const { data: { publicUrl } } = supabase.storage.from('shop-images').getPublicUrl(path);
+      setAvatarUrl(publicUrl);
+      await supabase.from('users').update({ avatar_url: publicUrl }).eq('id', user!.id);
+      setUser({ ...user!, avatar_url: publicUrl } as any);
+    } catch (e: any) {
+      Alert.alert('Error', e?.message ?? 'Ocurrió un error al procesar la imagen.');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   const checkNotifPermission = async () => {
     const { status } = await Notifications.getPermissionsAsync();
@@ -58,50 +99,44 @@ export default function ProfileScreen() {
     try {
       if (!user?.id) return;
 
+      const { data: shop } = await supabase
+        .from('barbershops')
+        .select('id, rating')
+        .eq('owner_id', user.id)
+        .single();
+
+      if (!shop) { setLoading(false); return; }
+
       const { count: bookingCount } = await supabase
         .from('bookings')
         .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
+        .eq('barbershop_id', shop.id)
         .neq('status', 'cancelled');
 
-      const { data: bookings } = await supabase
-        .from('bookings')
-        .select('barbershop_id')
-        .eq('user_id', user.id)
-        .neq('status', 'cancelled');
-      const uniqueBarbers = new Set(bookings?.map((b: any) => b.barbershop_id)).size;
-
-      const { data: nextBooking } = await supabase
-        .from('bookings')
-        .select('*, barbershops(name)')
-        .eq('user_id', user.id)
-        .eq('status', 'confirmed')
-        .gte('booking_date', new Date().toISOString().split('T')[0])
-        .order('booking_date', { ascending: true })
-        .order('start_time', { ascending: true })
-        .limit(1)
-        .single();
+      const { count: serviceCount } = await supabase
+        .from('services')
+        .select('*', { count: 'exact', head: true })
+        .eq('barbershop_id', shop.id)
+        .eq('is_active', true);
 
       setStats({
-        totalBookings: bookingCount || 0,
-        uniqueBarbers,
-        nextBooking: nextBooking || null,
+        totalBookings: bookingCount ?? 0,
+        activeServices: serviceCount ?? 0,
+        rating: shop.rating ?? 0,
       });
-    } catch (error) {
-      console.error('Error loading stats:', error);
+    } catch (e) {
+      console.error('Error loading stats:', e);
     } finally {
       setLoading(false);
     }
   };
 
-  const getNextBookingText = () => {
-    if (!stats.nextBooking) return '–';
-    return new Date(stats.nextBooking.booking_date + 'T12:00:00').toLocaleDateString('es-CO', {
-      weekday: 'short', day: 'numeric', month: 'short',
-    });
-  };
-
-  const initials = user?.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) ?? '?';
+  const initials = (user?.name ?? 'U')
+    .split(' ')
+    .slice(0, 2)
+    .map((w: string) => w[0])
+    .join('')
+    .toUpperCase();
 
   const openEdit = () => {
     setEditName(user?.name ?? '');
@@ -122,6 +157,27 @@ export default function ProfileScreen() {
     setEditVisible(false);
   };
 
+  const handleResetPassword = () => {
+    Alert.alert(
+      'Cambiar contraseña',
+      `Se enviará un enlace a ${user?.email} para restablecer tu contraseña.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Enviar enlace', onPress: async () => {
+            if (!user?.email) return;
+            const { error } = await supabase.auth.resetPasswordForEmail(user.email);
+            if (error) {
+              Alert.alert('Error', error.message);
+            } else {
+              Alert.alert('Enviado', 'Revisa tu correo para continuar.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleSignOut = () => {
     Alert.alert('Cerrar sesión', '¿Seguro que quieres salir?', [
       { text: 'Cancelar', style: 'cancel' },
@@ -135,111 +191,87 @@ export default function ProfileScreen() {
   const handleEnableNotifications = async () => {
     const { status } = await Notifications.requestPermissionsAsync();
     setNotifStatus(status);
-    if (status !== 'granted') {
-      Linking.openSettings();
-    }
-  };
-
-  const handlePickAvatar = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permiso necesario', 'Necesitamos acceso a tu galería para cambiar tu foto.');
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
-    });
-    if (result.canceled || !result.assets[0]) return;
-    setUploading(true);
-    try {
-      const asset = result.assets[0];
-      const ext = (asset.uri.split('.').pop()?.split('?')[0] ?? 'jpg').toLowerCase();
-      const mime = ext === 'jpg' ? 'image/jpeg' : `image/${ext}`;
-      const path = `${user!.id}/avatar.${ext}`;
-      const base64 = await FileSystem.readAsStringAsync(asset.uri, { encoding: 'base64' });
-      const { error: uploadError } = await supabase.storage
-        .from('shop-images')
-        .upload(path, decode(base64), { contentType: mime, upsert: true });
-      if (uploadError) { Alert.alert('Error', uploadError.message); return; }
-      const { data: { publicUrl } } = supabase.storage.from('shop-images').getPublicUrl(path);
-      setAvatarUrl(publicUrl);
-      await supabase.from('users').update({ avatar_url: publicUrl }).eq('id', user!.id);
-      setUser({ ...user!, avatar_url: publicUrl });
-    } catch (e: any) {
-      Alert.alert('Error', e?.message ?? 'Ocurrió un error al subir la imagen.');
-    } finally {
-      setUploading(false);
-    }
+    if (status !== 'granted') Linking.openSettings();
   };
 
   const rows: SettingsRow[] = [
     { icon: 'person-outline', label: 'Editar perfil', sublabel: 'Nombre y datos de contacto', onPress: openEdit },
-    { icon: 'notifications-outline', label: 'Notificaciones', sublabel: 'Alertas y recordatorios', onPress: () => setNotifVisible(true) },
+    { icon: 'notifications-outline', label: 'Notificaciones', sublabel: 'Alertas de nuevas reservas', onPress: () => setNotifVisible(true) },
+    { icon: 'lock-closed-outline', label: 'Cambiar contraseña', sublabel: 'Enlace de restablecimiento al correo', onPress: handleResetPassword },
     { icon: 'shield-checkmark-outline', label: 'Privacidad', sublabel: 'Datos y seguridad', onPress: () => setPrivacyVisible(true) },
     { icon: 'help-circle-outline', label: 'Ayuda y soporte', sublabel: 'FAQ y contacto', onPress: () => setHelpVisible(true) },
-    { icon: 'information-circle-outline', label: 'Acerca de Barberly', sublabel: 'Versión 1.0.0', onPress: () => setAboutVisible(true) },
+    { icon: 'information-circle-outline', label: 'Acerca de Buqui', sublabel: 'Versión 1.0.0', onPress: () => setAboutVisible(true) },
   ];
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.gradientStart} />
+
       <GradientView direction="top-bottom">
-        {/* Header */}
-        <View style={styles.header}>
+        {/* Back header */}
+        <View style={styles.topBar}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <Ionicons name="arrow-back" size={20} color={Colors.white} />
+          </TouchableOpacity>
+          <Text style={styles.topBarTitle}>Mi perfil</Text>
+          <TouchableOpacity onPress={() => setNotifVisible(true)} style={styles.notifBtn}>
+            <Ionicons name="notifications-outline" size={20} color={Colors.white} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Avatar hero */}
+        <View style={styles.hero}>
           <TouchableOpacity style={styles.avatarWrap} onPress={handlePickAvatar} activeOpacity={0.85}>
             {avatarUrl ? (
-              <Image source={{ uri: avatarUrl }} style={styles.avatarPhoto} />
+              <Image source={{ uri: avatarUrl }} style={styles.avatarImg} />
             ) : (
               <View style={styles.avatar}>
                 <Text style={styles.avatarText}>{initials}</Text>
               </View>
             )}
-            <View style={styles.avatarCameraBtn}>
-              {uploading
-                ? <ActivityIndicator size="small" color={Colors.white} />
-                : <Ionicons name="camera" size={14} color={Colors.white} />}
+            <View style={styles.avatarEditBadge}>
+              {uploadingAvatar
+                ? <ActivityIndicator size={10} color={Colors.white} />
+                : <Ionicons name="camera" size={12} color={Colors.white} />}
             </View>
           </TouchableOpacity>
-          <Text style={styles.name}>{user?.name ?? 'Usuario'}</Text>
+          <Text style={styles.name}>{user?.name ?? 'Propietario'}</Text>
           <Text style={styles.email}>{user?.email}</Text>
           <View style={styles.roleBadge}>
-            <Ionicons name={user?.role === 'barber' ? 'storefront-outline' : 'person-outline'} size={13} color={Colors.white} />
-            <Text style={styles.roleText}>{user?.role === 'barber' ? 'Propietario' : 'Cliente'}</Text>
+            <Ionicons name="storefront-outline" size={13} color={Colors.white} />
+            <Text style={styles.roleText}>Propietario</Text>
           </View>
         </View>
       </GradientView>
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Stats (only for clients) */}
-        {user?.role === 'client' && (
-          <View style={styles.statsRow}>
-            <View style={styles.statCard}>
-              {loading ? <ActivityIndicator color={Colors.primary} /> : <>
-                <Text style={styles.statNum}>{stats.totalBookings}</Text>
-                <Text style={styles.statLabel}>Reservas</Text>
-              </>}
-            </View>
-            <View style={[styles.statCard, styles.statCardMid]}>
-              {loading ? <ActivityIndicator color={Colors.primary} /> : <>
-                <Text style={styles.statNum}>{stats.uniqueBarbers}</Text>
-                <Text style={styles.statLabel}>Negocios</Text>
-              </>}
-            </View>
-            <View style={styles.statCard}>
-              {loading ? <ActivityIndicator color={Colors.primary} /> : <>
-                <Text style={styles.statNum}>{getNextBookingText()}</Text>
-                <Text style={styles.statLabel}>Próxima</Text>
-              </>}
-            </View>
+
+        {/* Stats */}
+        <View style={styles.statsRow}>
+          <View style={styles.statCard}>
+            {loading ? <ActivityIndicator color={Colors.primary} /> : <>
+              <Text style={styles.statNum}>{stats.totalBookings}</Text>
+              <Text style={styles.statLabel}>Citas</Text>
+            </>}
           </View>
-        )}
+          <View style={[styles.statCard, styles.statCardMid]}>
+            {loading ? <ActivityIndicator color={Colors.primary} /> : <>
+              <Text style={styles.statNum}>{stats.activeServices}</Text>
+              <Text style={styles.statLabel}>Servicios</Text>
+            </>}
+          </View>
+          <View style={styles.statCard}>
+            {loading ? <ActivityIndicator color={Colors.primary} /> : <>
+              <Text style={styles.statNum}>{stats.rating > 0 ? stats.rating.toFixed(1) : '–'}</Text>
+              <Text style={styles.statLabel}>Calificación</Text>
+            </>}
+          </View>
+        </View>
 
         {/* Settings */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Configuración</Text>
+          <View style={styles.settingsCardShadow}>
           <View style={styles.settingsCard}>
             {rows.map((row, i) => (
               <TouchableOpacity
@@ -259,6 +291,7 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             ))}
           </View>
+          </View>
         </View>
 
         {/* Sign out */}
@@ -269,7 +302,7 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.version}>Barberly v1.0.0</Text>
+        <Text style={styles.version}>Buqui v1.0.0</Text>
       </ScrollView>
 
       {/* ── Edit Profile Modal ── */}
@@ -291,7 +324,7 @@ export default function ProfileScreen() {
               icon="person-outline"
             />
             <Input
-              label="Teléfono"
+              label="Teléfono personal"
               value={editPhone}
               onChangeText={setEditPhone}
               placeholder="3001234567"
@@ -322,26 +355,22 @@ export default function ProfileScreen() {
                 </Text>
                 <Text style={styles.notifStatusSub}>
                   {notifStatus === 'granted'
-                    ? 'Recibirás alertas cuando tu cita sea confirmada o cancelada.'
-                    : 'Activa las notificaciones para no perderte ninguna actualización de tus citas.'}
+                    ? 'Recibirás alertas cuando tus clientes hagan una nueva reserva.'
+                    : 'Activa las notificaciones para saber de inmediato cuando llegue una reserva.'}
                 </Text>
               </View>
             </View>
 
             {notifStatus !== 'granted' && (
-              <Button
-                title="Activar notificaciones"
-                onPress={handleEnableNotifications}
-                style={{ marginBottom: 20 }}
-              />
+              <Button title="Activar notificaciones" onPress={handleEnableNotifications} style={{ marginBottom: 8 }} />
             )}
 
             <Text style={styles.notifSectionTitle}>¿Qué notificaciones recibirás?</Text>
             {[
-              { icon: 'checkmark-circle-outline', text: 'Confirmación de tu reserva por el negocio' },
-              { icon: 'close-circle-outline', text: 'Cancelación o cambio de tu cita' },
-              { icon: 'alarm-outline', text: 'Recordatorio 1 hora antes de tu cita' },
-              { icon: 'star-outline', text: 'Invitación a calificar tu experiencia' },
+              { icon: 'calendar-outline', text: 'Nueva reserva de un cliente' },
+              { icon: 'close-circle-outline', text: 'Cancelación de una cita existente' },
+              { icon: 'repeat-outline', text: 'Reprogramación solicitada por un cliente' },
+              { icon: 'alert-circle-outline', text: 'Recordatorio de citas del día' },
             ].map(item => (
               <View key={item.text} style={styles.notifItem}>
                 <Ionicons name={item.icon as any} size={18} color={Colors.primary} />
@@ -373,34 +402,34 @@ export default function ProfileScreen() {
             <View style={styles.privacyHero}>
               <Ionicons name="shield-checkmark" size={40} color={Colors.primary} />
               <Text style={styles.privacyHeroTitle}>Tus datos están seguros</Text>
-              <Text style={styles.privacyHeroSub}>Barberly protege tu información y nunca la comparte con terceros.</Text>
+              <Text style={styles.privacyHeroSub}>Buqui protege tu información y la de tus clientes en todo momento.</Text>
             </View>
 
             {[
               {
                 icon: 'person-outline',
                 title: 'Datos que recopilamos',
-                body: 'Nombre, correo electrónico y número de teléfono. Solo lo necesario para gestionar tus reservas.',
+                body: 'Nombre, correo, teléfono y datos de tu negocio (nombre, dirección, foto). Solo lo necesario para operar la plataforma.',
+              },
+              {
+                icon: 'people-outline',
+                title: 'Datos de tus clientes',
+                body: 'Accedes al nombre y teléfono de los clientes que reservan en tu negocio. Estos datos solo deben usarse para gestionar las citas.',
               },
               {
                 icon: 'lock-closed-outline',
                 title: 'Cómo los usamos',
-                body: 'Tus datos se usan exclusivamente para crear y gestionar citas con las barberías que eliges.',
-              },
-              {
-                icon: 'people-outline',
-                title: 'Compartición',
-                body: 'Solo compartimos tu nombre y contacto con el negocio de tu cita. Jamás vendemos tus datos.',
+                body: 'Los datos del negocio se muestran a los clientes para que puedan encontrarte y reservar. Nunca los vendemos ni compartimos con terceros.',
               },
               {
                 icon: 'notifications-off-outline',
                 title: 'Notificaciones push',
-                body: 'Solo enviamos alertas relacionadas con tus reservas. Puedes desactivarlas en cualquier momento.',
+                body: 'Solo recibimos notificaciones relacionadas con reservas de tu negocio. Puedes desactivarlas en cualquier momento.',
               },
               {
                 icon: 'trash-outline',
                 title: 'Eliminar tu cuenta',
-                body: 'Puedes solicitar la eliminación completa de tu cuenta y datos escribiéndonos a soporte@barberly.app.',
+                body: 'Puedes solicitar la eliminación completa de tu cuenta y los datos de tu negocio escribiéndonos a soporte@barberly.app.',
               },
             ].map(section => (
               <View key={section.title} style={styles.privacySection}>
@@ -414,12 +443,12 @@ export default function ProfileScreen() {
               </View>
             ))}
 
-            <Text style={styles.privacyFooter}>Última actualización: enero 2026 · © Barberly</Text>
+            <Text style={styles.privacyFooter}>Última actualización: enero 2026 · © Buqui</Text>
           </ScrollView>
         </SafeAreaView>
       </Modal>
 
-      {/* ── Help & Support Modal ── */}
+      {/* ── Help Modal ── */}
       <Modal visible={helpVisible} animationType="slide" presentationStyle="pageSheet">
         <SafeAreaView style={styles.modal}>
           <View style={styles.modalHeader}>
@@ -434,24 +463,28 @@ export default function ProfileScreen() {
 
             {[
               {
-                q: '¿Cómo hago una reserva?',
-                a: 'Ve a Inicio → busca o selecciona una barbería → elige el servicio → escoge el día y hora disponible → confirma tu cita.',
+                q: '¿Cómo confirmo una reserva?',
+                a: 'Ve a la Agenda → toca la cita pendiente → presiona "Confirmar". El cliente recibirá una notificación de inmediato.',
               },
               {
-                q: '¿Cómo cancelo una cita?',
-                a: 'Ve a Mis citas → toca la cita que quieres cancelar → presiona el botón Cancelar. Recibirás una confirmación.',
+                q: '¿Cómo rechazo o cancelo una cita?',
+                a: 'En la Agenda, toca la cita → presiona "Rechazar" (si está pendiente) o "Cancelar cita" (si ya estaba confirmada). El cliente será notificado.',
               },
               {
-                q: '¿Cuándo se confirma mi reserva?',
-                a: 'Tu cita queda en estado "pendiente" hasta que el negocio la confirme. Te notificaremos en cuanto lo haga.',
+                q: '¿Cómo configuro mis horarios de atención?',
+                a: 'Ve a la pestaña "Horarios" → activa o desactiva los días que atiendes y ajusta la hora de inicio y fin para cada día.',
               },
               {
-                q: '¿Puedo cambiar el horario de una cita?',
-                a: 'Por ahora debes cancelar la cita actual y crear una nueva. Pronto añadiremos la opción de reprogramar.',
+                q: '¿Cómo agrego un nuevo servicio?',
+                a: 'Ve a "Servicios" → toca el botón "+" → ingresa el nombre, duración y precio → guarda. El servicio queda visible para los clientes de inmediato.',
               },
               {
-                q: '¿Qué pasa si el negocio cancela?',
-                a: 'Recibirás una notificación de inmediato y podrás reservar en otro horario.',
+                q: '¿Cómo actualizo la foto y datos de mi negocio?',
+                a: 'Ve a "Mi negocio" → toca la imagen de portada para cambiarla, o edita los campos de nombre, dirección y descripción → guarda los cambios.',
+              },
+              {
+                q: '¿Por qué no recibo notificaciones de nuevas reservas?',
+                a: 'Asegúrate de tener las notificaciones activadas en este perfil y en los ajustes del sistema de tu teléfono. También verifica que tu EAS Project ID esté configurado.',
               },
             ].map(({ q, a }) => (
               <View key={q} style={styles.faqItem}>
@@ -488,29 +521,29 @@ export default function ProfileScreen() {
             <TouchableOpacity onPress={() => setAboutVisible(false)} style={styles.modalCloseBtn}>
               <Ionicons name="close" size={20} color={Colors.text} />
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>Acerca de Barberly</Text>
+            <Text style={styles.modalTitle}>Acerca de Buqui</Text>
             <View style={{ width: 38 }} />
           </View>
           <ScrollView contentContainerStyle={[styles.modalBody, styles.aboutBody]} showsVerticalScrollIndicator={false}>
             <View style={styles.aboutLogo}>
               <Ionicons name="sparkles" size={44} color={Colors.white} />
             </View>
-            <Text style={styles.aboutAppName}>Barberly</Text>
+            <Text style={styles.aboutAppName}>Buqui</Text>
             <Text style={styles.aboutVersion}>Versión 1.0.0</Text>
             <Text style={styles.aboutTagline}>Tu turno, a un toque de distancia.</Text>
 
             <View style={styles.aboutDivider} />
 
             <Text style={styles.aboutDesc}>
-              Barberly conecta clientes con las mejores barberías de su ciudad de forma rápida, sencilla y sin llamadas.
-              Reserva, gestiona y confirma citas en segundos.
+              Buqui conecta clientes con los mejores negocios de bienestar y belleza de forma rápida, sencilla y sin llamadas.
+              Gestiona tu agenda, servicios y horarios desde un solo lugar.
             </Text>
 
             {[
-              { icon: 'flash-outline', label: 'Reservas en segundos' },
-              { icon: 'notifications-outline', label: 'Confirmaciones en tiempo real' },
-              { icon: 'map-outline', label: 'Barberías cerca de ti' },
-              { icon: 'star-outline', label: 'Sin colas ni esperas' },
+              { icon: 'flash-outline', label: 'Agenda en tiempo real' },
+              { icon: 'notifications-outline', label: 'Notificaciones instantáneas' },
+              { icon: 'pricetag-outline', label: 'Gestión de servicios y precios' },
+              { icon: 'bar-chart-outline', label: 'Estadísticas de tu negocio' },
             ].map(f => (
               <View key={f.label} style={styles.aboutFeature}>
                 <View style={styles.aboutFeatureIcon}>
@@ -530,7 +563,7 @@ export default function ProfileScreen() {
               <Text style={styles.aboutContactText}>hola@barberly.app</Text>
             </TouchableOpacity>
 
-            <Text style={styles.aboutCopy}>© 2026 Barberly. Todos los derechos reservados.</Text>
+            <Text style={styles.aboutCopy}>© 2026 Buqui. Todos los derechos reservados.</Text>
           </ScrollView>
         </SafeAreaView>
       </Modal>
@@ -540,30 +573,45 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    alignItems: 'center',
-    paddingTop: 24, paddingBottom: 28, paddingHorizontal: 24,
+
+  topBar: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingVertical: 14,
   },
-  avatarWrap: {
-    position: 'relative', marginBottom: 14,
-  },
-  avatar: {
-    width: 78, height: 78, borderRadius: 24,
-    backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 3, borderColor: 'rgba(255,255,255,0.15)',
-  },
-  avatarPhoto: {
-    width: 78, height: 78, borderRadius: 24,
-    borderWidth: 3, borderColor: 'rgba(255,255,255,0.15)',
-  },
-  avatarCameraBtn: {
-    position: 'absolute', bottom: -4, right: -4,
-    width: 26, height: 26, borderRadius: 13,
-    backgroundColor: Colors.primary,
-    borderWidth: 2, borderColor: Colors.background,
+  backBtn: {
+    width: 38, height: 38, borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center', justifyContent: 'center',
   },
-  avatarText: { fontSize: 28, fontWeight: '800', color: Colors.primary },
+  topBarTitle: { fontSize: 17, fontWeight: '700', color: Colors.white },
+  notifBtn: {
+    width: 38, height: 38, borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+
+  hero: {
+    alignItems: 'center',
+    paddingBottom: 28, paddingHorizontal: 24,
+  },
+  avatarWrap: { marginBottom: 16, position: 'relative' },
+  avatar: {
+    width: 110, height: 110, borderRadius: 32,
+    backgroundColor: Colors.white, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 3, borderColor: 'rgba(255,255,255,0.5)',
+  },
+  avatarImg: {
+    width: 110, height: 110, borderRadius: 32,
+    borderWidth: 3, borderColor: 'rgba(255,255,255,0.5)',
+  },
+  avatarText: { fontSize: 38, fontWeight: '800', color: Colors.text },
+  avatarEditBadge: {
+    position: 'absolute', bottom: 0, right: 0,
+    width: 30, height: 30, borderRadius: 15,
+    backgroundColor: Colors.buttonBg,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: Colors.white,
+  },
   name: { fontSize: 20, fontWeight: '800', color: Colors.white, letterSpacing: -0.3 },
   email: { fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 3 },
   roleBadge: {
@@ -572,20 +620,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 5, marginTop: 10,
   },
   roleText: { fontSize: 12, fontWeight: '700', color: Colors.white },
+
   statsRow: {
-    flexDirection: 'row', backgroundColor: Colors.surface, marginHorizontal: 16,
-    marginTop: 16, borderRadius: 16,
+    flexDirection: 'row', backgroundColor: Colors.surface,
+    marginHorizontal: 16, marginTop: 16, borderRadius: 16,
     shadowColor: '#000000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.07, shadowRadius: 10, elevation: 3,
   },
-  statCard: { flex: 1, alignItems: 'center', paddingVertical: 18 },
+  statCard: { flex: 1, alignItems: 'center', paddingVertical: 16 },
   statCardMid: { borderLeftWidth: 1, borderRightWidth: 1, borderColor: Colors.border },
   statNum: { fontSize: 22, fontWeight: '800', color: Colors.primary },
   statLabel: { fontSize: 12, color: Colors.textSecondary, marginTop: 3 },
+
   section: { paddingHorizontal: 16, marginTop: 24 },
   sectionLabel: { fontSize: 12, fontWeight: '700', color: Colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 },
-  settingsCard: {
-    backgroundColor: Colors.surface, borderRadius: 16,
+  settingsCardShadow: {
+    borderRadius: 16,
     shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
+  },
+  settingsCard: {
+    backgroundColor: Colors.surface, borderRadius: 16, overflow: 'hidden',
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, paddingHorizontal: 14 },
   rowBorder: { borderBottomWidth: 1, borderBottomColor: Colors.borderLight },
@@ -595,6 +648,7 @@ const styles = StyleSheet.create({
   rowLabel: { fontSize: 15, fontWeight: '600', color: Colors.text },
   rowLabelDanger: { color: Colors.danger },
   rowSub: { fontSize: 12, color: Colors.textMuted, marginTop: 1 },
+
   signOutBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     backgroundColor: Colors.errorBg, borderRadius: 14, paddingVertical: 14,
@@ -631,9 +685,7 @@ const styles = StyleSheet.create({
   privacyHero: { alignItems: 'center', paddingVertical: 20, gap: 8 },
   privacyHeroTitle: { fontSize: 18, fontWeight: '800', color: Colors.text },
   privacyHeroSub: { fontSize: 13, color: Colors.textSecondary, textAlign: 'center', lineHeight: 20 },
-  privacySection: {
-    backgroundColor: Colors.surface, borderRadius: 14, padding: 14, gap: 8,
-  },
+  privacySection: { backgroundColor: Colors.surface, borderRadius: 14, padding: 14, gap: 8 },
   privacySectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   privacyIconBox: { width: 32, height: 32, borderRadius: 8, backgroundColor: Colors.background, alignItems: 'center', justifyContent: 'center' },
   privacySectionTitle: { fontSize: 14, fontWeight: '700', color: Colors.text },
@@ -659,8 +711,7 @@ const styles = StyleSheet.create({
   aboutBody: { alignItems: 'center' },
   aboutLogo: {
     width: 80, height: 80, borderRadius: 24,
-    backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center',
-    marginBottom: 12,
+    backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center', marginBottom: 12,
     shadowColor: Colors.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 6,
   },
   aboutAppName: { fontSize: 26, fontWeight: '800', color: Colors.text, letterSpacing: -0.4 },

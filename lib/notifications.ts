@@ -4,13 +4,17 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { supabase } from './supabase';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+if (Device.isDevice) {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
 
 function getProjectId(): string | undefined {
   return (
@@ -39,7 +43,7 @@ export async function registerPushToken(userId: string): Promise<void> {
         name: 'Barberly',
         importance: Notifications.AndroidImportance.MAX,
         vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#E8B86D',
+        lightColor: '#2F6BFF',
       });
     }
 
@@ -71,7 +75,7 @@ export async function notifyBarber(
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({
         to: barber.push_token,
-        title: '¡Nueva reserva! ✂️',
+        title: '¡Nueva reserva!',
         body: `${clientName} reservó ${serviceName} para el ${dateStr} a las ${time}`,
         sound: 'default',
         data: { barbershopId },

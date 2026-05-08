@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, KeyboardAvoidingView, Platform, StatusBar, Image } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { Button, Input } from '@/components/ui';
@@ -8,6 +9,7 @@ import { UserRole } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function RegisterScreen() {
+  const insets = useSafeAreaInsets();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -40,18 +42,17 @@ export default function RegisterScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: Colors.white }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" bounces={false}>
         {/* Hero */}
-        <View style={styles.hero}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={20} color={Colors.white} />
+        <View style={[styles.hero, { paddingTop: insets.top + 16 }]}>
+          <TouchableOpacity style={[styles.backBtn, { top: insets.top + 12 }]} onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={20} color={Colors.text} />
           </TouchableOpacity>
-          <View style={styles.logoWrap}>
-            <Text style={styles.logoEmoji}>✂️</Text>
-          </View>
-          <Text style={styles.brand}>Únete a Barberly</Text>
-          <Text style={styles.tagline}>Reserva en segundos, sin llamadas</Text>
+          <Image source={require('@/assets/images/icono.png')} style={styles.appIcon} />
+          <Image source={require('@/assets/images/logo.png')} style={styles.logoImg} resizeMode="contain" />
+          <Text style={styles.tagline}>Crea tu cuenta en segundos</Text>
         </View>
 
         {/* Card */}
@@ -76,10 +77,10 @@ export default function RegisterScreen() {
               style={[styles.roleBtn, role === 'barber' && styles.roleBtnActive]}
               onPress={() => setRole('barber')}
             >
-              <Ionicons name="cut-outline" size={18} color={role === 'barber' ? Colors.primary : Colors.textMuted} />
+              <Ionicons name="storefront-outline" size={18} color={role === 'barber' ? Colors.primary : Colors.textMuted} />
               <View>
-                <Text style={[styles.roleTitle, role === 'barber' && styles.roleTitleActive]}>Soy barbero</Text>
-                <Text style={styles.roleSubtitle}>Gestiono mi negocio</Text>
+                <Text style={[styles.roleTitle, role === 'barber' && styles.roleTitleActive]}>Tengo un negocio</Text>
+                <Text style={styles.roleSubtitle}>Barbería, salón, spa…</Text>
               </View>
               {role === 'barber' && <View style={styles.roleCheck}><Ionicons name="checkmark" size={13} color={Colors.white} /></View>}
             </TouchableOpacity>
@@ -103,36 +104,31 @@ export default function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, backgroundColor: Colors.primary },
-  hero: { alignItems: 'center', paddingTop: 56, paddingBottom: 36, paddingHorizontal: 24 },
+  container: { flexGrow: 1, backgroundColor: Colors.white },
+  hero: { alignItems: 'center', paddingBottom: 28, paddingHorizontal: 24, gap: 10 },
   backBtn: {
-    position: 'absolute', top: 56, left: 24,
+    position: 'absolute', left: 24,
     width: 40, height: 40, borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: Colors.surfaceGrey,
     alignItems: 'center', justifyContent: 'center',
   },
-  logoWrap: {
-    width: 68, height: 68, borderRadius: 20,
-    backgroundColor: Colors.accentLight,
-    borderWidth: 2, borderColor: Colors.accent,
-    alignItems: 'center', justifyContent: 'center', marginBottom: 14,
-  },
-  logoEmoji: { fontSize: 32 },
-  brand: { fontSize: 26, fontWeight: '800', color: Colors.white, letterSpacing: -0.3 },
-  tagline: { fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 5 },
+  appIcon: { width: 68, height: 68, borderRadius: 18 },
+  logoImg: { width: 140, height: 38 },
+  tagline: { fontSize: 13, color: Colors.textMuted },
   card: {
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.white,
     borderTopLeftRadius: 32, borderTopRightRadius: 32,
     flex: 1, padding: 28, paddingTop: 28, minHeight: 540,
+    borderTopWidth: 1, borderTopColor: Colors.borderLight,
   },
   cardTitle: { fontSize: 22, fontWeight: '800', color: Colors.text, marginBottom: 18, letterSpacing: -0.3 },
   roleContainer: { flexDirection: 'row', gap: 10 },
   roleBtn: {
     flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10,
     borderWidth: 1.5, borderColor: Colors.border, borderRadius: 14,
-    padding: 12, backgroundColor: Colors.background, position: 'relative',
+    padding: 12, backgroundColor: Colors.surfaceGrey, position: 'relative',
   },
-  roleBtnActive: { borderColor: Colors.primary, backgroundColor: 'rgba(26,26,46,0.05)' },
+  roleBtnActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryBg },
   roleTitle: { fontSize: 13, fontWeight: '700', color: Colors.textSecondary },
   roleTitleActive: { color: Colors.primary },
   roleSubtitle: { fontSize: 11, color: Colors.textMuted, marginTop: 1 },

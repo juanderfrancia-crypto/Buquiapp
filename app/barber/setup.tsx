@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, StatusBar, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert, StatusBar, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,15 +7,27 @@ import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuthStore } from '@/stores/authStore';
-import { Colors } from '@/constants';
+import { Colors, BUSINESS_TYPES, getBusinessConfig } from '@/constants';
+import { GradientView } from '@/components/ui/GradientView';
+import { BusinessType } from '@/types';
+
+const BUSINESS_OPTIONS: { type: BusinessType; label: string; desc: string }[] = [
+  { type: 'barbershop',   label: 'Barbería',        desc: 'Cortes, barba y más' },
+  { type: 'beauty_salon', label: 'Salón de Belleza', desc: 'Uñas, maquillaje, estética' },
+  { type: 'spa',          label: 'Spa',              desc: 'Masajes, tratamientos, relax' },
+  { type: 'other',        label: 'Otro Negocio',     desc: 'Cualquier servicio con citas' },
+];
 
 export default function BarberSetupScreen() {
   const { user } = useAuthStore();
+  const [businessType, setBusinessType] = useState<BusinessType>('barbershop');
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
   const [description, setDescription] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const biz = getBusinessConfig(businessType);
 
   const handleCreate = async () => {
     if (!name.trim() || !address.trim()) {
@@ -25,40 +37,59 @@ export default function BarberSetupScreen() {
     if (!user) return;
 
     setSaving(true);
-    const { error } = await supabase.from('barbershops').insert({
-      owner_id: user.id,
-      name: name.trim(),
-      address: address.trim(),
-      phone: phone.trim() || null,
-      description: description.trim() || null,
-      is_active: true,
-    });
-    setSaving(false);
+    try {
+      const { data: shop, error: shopError } = await supabase.from('barbershops').insert({
+        owner_id: user.id,
+        name: name.trim(),
+        address: address.trim(),
+        phone: phone.trim() || null,
+        description: description.trim() || null,
+        business_type: businessType,
+        is_active: true,
+      }).select().single();
 
-    if (error) {
-      Alert.alert('Error', error.message);
-    } else {
-      router.replace('/barber/dashboard');
+      if (shopError || !shop) {
+        Alert.alert('Error', shopError?.message || 'No se pudo crear el negocio');
+        setSaving(false);
+        return;
+      }
+
+      const defaultSchedule = [
+        { barbershop_id: shop.id, day_of_week: 1, start_time: '09:00', end_time: '18:00', is_active: true },
+        { barbershop_id: shop.id, day_of_week: 2, start_time: '09:00', end_time: '18:00', is_active: true },
+        { barbershop_id: shop.id, day_of_week: 3, start_time: '09:00', end_time: '18:00', is_active: true },
+        { barbershop_id: shop.id, day_of_week: 4, start_time: '09:00', end_time: '18:00', is_active: true },
+        { barbershop_id: shop.id, day_of_week: 5, start_time: '09:00', end_time: '18:00', is_active: true },
+        { barbershop_id: shop.id, day_of_week: 6, start_time: '09:00', end_time: '13:00', is_active: true },
+        { barbershop_id: shop.id, day_of_week: 0, start_time: '00:00', end_time: '00:00', is_active: false },
+      ];
+
+      const { error: scheduleError } = await supabase.from('availability').insert(defaultSchedule);
+      if (scheduleError) console.warn('Schedule creation warning:', scheduleError.message);
+
+      setSaving(false);
+      router.replace('/barber/welcome');
+    } catch (error) {
+      console.error('Setup error:', error);
+      Alert.alert('Error', 'Ocurrió un error inesperado');
+      setSaving(false);
     }
   };
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <SafeAreaView style={styles.container} edges={['top']}>
-        <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
+        <StatusBar barStyle="light-content" backgroundColor={Colors.gradientStart} />
 
-        {/* Hero */}
-        <View style={styles.hero}>
+        {/* Hero dinámico */}
+        <GradientView style={styles.hero} direction="top-bottom">
           <View style={styles.iconWrap}>
-            <Ionicons name="cut" size={34} color={Colors.accent} />
+            <Ionicons name={biz.ionicon as any} size={34} color={Colors.white} />
           </View>
-          <Text style={styles.heroTitle}>Configura tu barbería</Text>
-          <Text style={styles.heroSub}>
-            Completa estos datos para que los clientes puedan encontrarte y reservar citas.
-          </Text>
-        </View>
+          <Text style={styles.heroTitle}>{biz.setupTitle}</Text>
+          <Text style={styles.heroSub}>{biz.setupSubtitle}</Text>
+        </GradientView>
 
-        {/* Form card */}
         <ScrollView
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
@@ -66,11 +97,45 @@ export default function BarberSetupScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Información de tu barbería</Text>
+
+            {/* Selector de tipo de negocio */}
+            <Text style={styles.sectionLabel}>¿Qué tipo de negocio tienes?</Text>
+            <View style={styles.typeGrid}>
+              {BUSINESS_OPTIONS.map((opt) => {
+                const active = businessType === opt.type;
+                return (
+                  <TouchableOpacity
+                    key={opt.type}
+                    style={[styles.typeCard, active && styles.typeCardActive]}
+                    onPress={() => setBusinessType(opt.type)}
+                    activeOpacity={0.75}
+                  >
+                    <Ionicons
+                      name={BUSINESS_TYPES[opt.type].ionicon as any}
+                      size={24}
+                      color={active ? Colors.white : Colors.text}
+                      style={styles.typeIcon}
+                    />
+                    <Text style={[styles.typeLabel, active && styles.typeLabelActive]}>{opt.label}</Text>
+                    <Text style={[styles.typeDesc, active && styles.typeDescActive]}>{opt.desc}</Text>
+                    {active && (
+                      <View style={styles.typeCheck}>
+                        <Ionicons name="checkmark" size={11} color={Colors.white} />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <View style={styles.divider} />
+
+            {/* Información del negocio */}
+            <Text style={styles.sectionLabel}>Información de tu {biz.label.toLowerCase()}</Text>
 
             <Input
               label="Nombre *"
-              placeholder="Ej: Barbería El Padrino"
+              placeholder={biz.placeholder}
               value={name}
               onChangeText={setName}
               icon="storefront-outline"
@@ -106,7 +171,7 @@ export default function BarberSetupScreen() {
             </View>
 
             <Button
-              title="Crear mi barbería"
+              title={`Crear mi ${biz.label.toLowerCase()}`}
               onPress={handleCreate}
               loading={saving}
               style={styles.btn}
@@ -119,7 +184,7 @@ export default function BarberSetupScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.primary },
+  container: { flex: 1, backgroundColor: Colors.gradientStart },
   hero: {
     alignItems: 'center',
     paddingHorizontal: 28,
@@ -128,8 +193,8 @@ const styles = StyleSheet.create({
   },
   iconWrap: {
     width: 72, height: 72, borderRadius: 22,
-    backgroundColor: 'rgba(232,184,109,0.15)',
-    borderWidth: 2, borderColor: Colors.accent,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 2, borderColor: 'rgba(255,255,255,0.4)',
     alignItems: 'center', justifyContent: 'center',
     marginBottom: 16,
   },
@@ -152,10 +217,46 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     gap: 4,
   },
-  cardTitle: {
+  sectionLabel: {
     fontSize: 13, fontWeight: '700', color: Colors.textMuted,
     textTransform: 'uppercase', letterSpacing: 0.8,
-    marginBottom: 12,
+    marginBottom: 12, marginTop: 4,
+  },
+  typeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 4,
+  },
+  typeCard: {
+    width: '47%',
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    borderRadius: 16,
+    padding: 14,
+    backgroundColor: Colors.surface,
+    alignItems: 'flex-start',
+    position: 'relative',
+  },
+  typeCardActive: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primary,
+  },
+  typeIcon: { marginBottom: 8 },
+  typeLabel: {
+    fontSize: 14, fontWeight: '700', color: Colors.text, marginBottom: 3,
+  },
+  typeLabelActive: { color: Colors.white },
+  typeDesc: { fontSize: 11, color: Colors.textMuted, lineHeight: 15 },
+  typeDescActive: { color: 'rgba(255,255,255,0.6)' },
+  typeCheck: {
+    position: 'absolute', top: -6, right: -6,
+    width: 18, height: 18, borderRadius: 9,
+    backgroundColor: Colors.primary,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  divider: {
+    height: 1, backgroundColor: Colors.borderLight, marginVertical: 16,
   },
   notice: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 10,

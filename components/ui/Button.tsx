@@ -4,7 +4,7 @@ import { Colors } from '@/constants';
 interface ButtonProps {
   title: string;
   onPress: () => void;
-  variant?: 'primary' | 'outline' | 'ghost' | 'accent';
+  variant?: 'primary' | 'outline' | 'ghost' | 'accent' | 'blue';
   loading?: boolean;
   disabled?: boolean;
   style?: ViewStyle;
@@ -14,6 +14,7 @@ interface ButtonProps {
 
 export function Button({ title, onPress, variant = 'primary', loading, disabled, style, textStyle, icon }: ButtonProps) {
   const isDisabled = disabled || loading;
+  const spinnerColor = (variant === 'primary' || variant === 'accent' || variant === 'blue') ? Colors.white : Colors.buttonBg;
   return (
     <TouchableOpacity
       style={[styles.base, styles[variant], isDisabled && styles.disabled, style]}
@@ -22,7 +23,7 @@ export function Button({ title, onPress, variant = 'primary', loading, disabled,
       activeOpacity={0.82}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'primary' || variant === 'accent' ? Colors.white : Colors.primary} size="small" />
+        <ActivityIndicator color={spinnerColor} size="small" />
       ) : (
         <View style={styles.content}>
           {icon && <View style={styles.icon}>{icon}</View>}
@@ -40,22 +41,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 2,
   },
   content: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   icon: { marginRight: 8 },
-  primary: { backgroundColor: Colors.primary },
+  // Negro — botón principal
+  primary: { backgroundColor: Colors.buttonBg },
+  // Azul — botón de marca secundario
+  blue: { backgroundColor: Colors.primary },
   accent: { backgroundColor: Colors.accent },
-  outline: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: Colors.primary, shadowOpacity: 0, elevation: 0 },
-  ghost: { backgroundColor: 'transparent', shadowOpacity: 0, elevation: 0 },
+  outline: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: Colors.border },
+  ghost: { backgroundColor: 'transparent' },
   disabled: { opacity: 0.4 },
-  text: { fontSize: 15, fontWeight: '700', letterSpacing: 0.2 },
+  text: { fontSize: 15, fontWeight: '700', letterSpacing: 0.1 },
   primaryText: { color: Colors.white },
-  accentText: { color: Colors.primary },
-  outlineText: { color: Colors.primary },
-  ghostText: { color: Colors.primary },
+  blueText: { color: Colors.white },
+  accentText: { color: Colors.white },
+  outlineText: { color: Colors.text },
+  ghostText: { color: Colors.text },
 });

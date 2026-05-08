@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { GradientView } from '@/components/ui/GradientView';
 import { useAuthStore } from '@/stores/authStore';
 import { Service } from '@/types';
 import { Colors } from '@/constants';
@@ -62,21 +63,32 @@ export default function ServicesScreen() {
   };
 
   const handleSave = async () => {
-    if (!name || !duration || !price || !barbershopId) {
+    if (!name.trim() || !duration || !price || !barbershopId) {
       Alert.alert('Campos requeridos', 'Completa todos los campos');
+      return;
+    }
+
+    const durationNum = parseInt(duration, 10);
+    const priceNum = parseFloat(price);
+
+    if (isNaN(durationNum) || durationNum <= 0) {
+      Alert.alert('Duración inválida', 'La duración debe ser mayor a 0 minutos');
+      return;
+    }
+    if (isNaN(priceNum) || priceNum < 0) {
+      Alert.alert('Precio inválido', 'Ingresa un precio válido (puede ser 0 para servicios gratuitos)');
       return;
     }
 
     setSaving(true);
     try {
       if (editingService) {
-        // Actualizar servicio existente
         const { error } = await supabase
           .from('services')
           .update({
             name: name.trim(),
-            duration_minutes: parseInt(duration),
-            price: parseFloat(price),
+            duration_minutes: durationNum,
+            price: priceNum,
           })
           .eq('id', editingService.id);
 
@@ -92,8 +104,8 @@ export default function ServicesScreen() {
         const { error } = await supabase.from('services').insert({
           barbershop_id: barbershopId,
           name: name.trim(),
-          duration_minutes: parseInt(duration),
-          price: parseFloat(price),
+          duration_minutes: durationNum,
+          price: priceNum,
           is_active: true,
         });
 
@@ -119,7 +131,7 @@ export default function ServicesScreen() {
           text: 'Eliminar',
           style: 'destructive',
           onPress: async () => {
-            const { error } = await supabase.from('services').delete().eq('id', service.id);
+            const { error } = await supabase.from('services').update({ is_active: false }).eq('id', service.id);
             if (error) {
               Alert.alert('Error', error.message);
             } else {
@@ -140,20 +152,19 @@ export default function ServicesScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
+      <StatusBar barStyle="light-content" backgroundColor={Colors.gradientStart} />
 
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={20} color={Colors.white} />
-        </TouchableOpacity>
-        <View>
-          <Text style={styles.headerTitle}>Mis servicios</Text>
-          <Text style={styles.headerSub}>{activeCount} activo{activeCount !== 1 ? 's' : ''}</Text>
+      <GradientView direction="top-bottom">
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.headerTitle}>Mis servicios</Text>
+            <Text style={styles.headerSub}>{activeCount} activo{activeCount !== 1 ? 's' : ''}</Text>
+          </View>
+          <TouchableOpacity style={styles.addBtn} onPress={() => handleOpenModal()}>
+            <Ionicons name="add" size={22} color={Colors.white} />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.addBtn} onPress={() => handleOpenModal()}>
-          <Ionicons name="add" size={22} color={Colors.white} />
-        </TouchableOpacity>
-      </View>
+      </GradientView>
 
       {loading
         ? <ActivityIndicator style={{ marginTop: 48 }} color={Colors.primary} />
@@ -165,7 +176,7 @@ export default function ServicesScreen() {
             showsVerticalScrollIndicator={false}
             renderItem={({ item }) => (
               <View style={styles.card}>
-                <View style={[styles.colorBar, { backgroundColor: item.is_active ? Colors.accent : Colors.border }]} />
+                <View style={[styles.colorBar, { backgroundColor: item.is_active ? Colors.primary : Colors.border }]} />
                 <View style={styles.cardContent}>
                   <View style={styles.cardTop}>
                     <View style={{ flex: 1 }}>
@@ -211,7 +222,7 @@ export default function ServicesScreen() {
             ListEmptyComponent={
               <View style={styles.empty}>
                 <View style={styles.emptyIcon}>
-                  <Ionicons name="cut-outline" size={36} color={Colors.textMuted} />
+                  <Ionicons name="pricetag-outline" size={36} color={Colors.textMuted} />
                 </View>
                 <Text style={styles.emptyTitle}>Sin servicios aún</Text>
                 <Text style={styles.emptySub}>Toca + para agregar tu primer servicio</Text>
@@ -232,7 +243,7 @@ export default function ServicesScreen() {
             <View style={{ width: 38 }} />
           </View>
           <View style={styles.modalBody}>
-            <Input label="Nombre del servicio" value={name} onChangeText={setName} placeholder="Ej: Corte de cabello" icon="cut-outline" />
+            <Input label="Nombre del servicio" value={name} onChangeText={setName} placeholder="Ej: Corte de cabello" icon="pricetag-outline" />
             <Input label="Duración (minutos)" value={duration} onChangeText={setDuration} placeholder="30" keyboardType="numeric" icon="time-outline" />
             <Input label="Precio (COP)" value={price} onChangeText={setPrice} placeholder="15000" keyboardType="numeric" icon="cash-outline" />
             <Button title={editingService ? 'Actualizar servicio' : 'Guardar servicio'} onPress={handleSave} loading={saving} style={{ marginTop: 8 }} />
@@ -247,16 +258,15 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    backgroundColor: Colors.primary, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 20,
+    paddingHorizontal: 20, paddingTop: 16, paddingBottom: 20,
   },
-  backBtn: { width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontSize: 20, fontWeight: '800', color: Colors.white, letterSpacing: -0.3, textAlign: 'center' },
-  headerSub: { fontSize: 12, color: 'rgba(255,255,255,0.5)', textAlign: 'center', marginTop: 2 },
-  addBtn: { width: 38, height: 38, borderRadius: 12, backgroundColor: Colors.accent, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: Colors.white, letterSpacing: -0.3 },
+  headerSub: { fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 2 },
+  addBtn: { width: 38, height: 38, borderRadius: 12, backgroundColor: Colors.buttonBg, alignItems: 'center', justifyContent: 'center' },
   list: { padding: 16, gap: 10 },
   card: {
     flexDirection: 'row', backgroundColor: Colors.surface, borderRadius: 16, overflow: 'hidden',
-    shadowColor: '#0D0D1A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
+    shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
   },
   colorBar: { width: 5 },
   cardContent: { flex: 1, padding: 14 },

@@ -1,14 +1,32 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '@/stores/authStore';
 import { Colors } from '@/constants';
 
+const ONBOARDING_KEY = '@barberly:onboarding_done';
+
 export default function Index() {
   const { session, user, loading } = useAuthStore();
+  const [checkingOnboarding, setCheckingOnboarding] = useState(true);
+  const [onboardingDone, setOnboardingDone] = useState(false);
 
   useEffect(() => {
-    if (loading) return;
+    AsyncStorage.getItem(ONBOARDING_KEY).then((val) => {
+      setOnboardingDone(val === 'true');
+      setCheckingOnboarding(false);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (loading || checkingOnboarding) return;
+
+    if (!onboardingDone) {
+      router.replace('/onboarding');
+      return;
+    }
+
     if (!session) {
       router.replace('/auth/login');
     } else if (user?.role === 'barber') {
@@ -16,7 +34,7 @@ export default function Index() {
     } else {
       router.replace('/client/home');
     }
-  }, [session, user, loading]);
+  }, [session, user, loading, checkingOnboarding, onboardingDone]);
 
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.primary }}>

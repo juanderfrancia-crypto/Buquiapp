@@ -3,12 +3,15 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Barbershop } from '@/types';
 import { Colors } from '@/constants';
+import { getBusinessConfig } from '@/constants';
 
 interface ShopCardProps {
   shop: Barbershop;
 }
 
 export function ShopCard({ shop }: ShopCardProps) {
+  const biz = getBusinessConfig(shop.business_type);
+
   return (
     <TouchableOpacity
       style={styles.card}
@@ -21,13 +24,14 @@ export function ShopCard({ shop }: ShopCardProps) {
           ? <Image source={{ uri: shop.image_url }} style={styles.coverImage} />
           : (
             <View style={styles.coverPlaceholder}>
-              <Text style={styles.coverEmoji}>✂️</Text>
+              <Ionicons name={biz.ionicon as any} size={44} color={Colors.white} />
             </View>
           )
         }
-        <View style={styles.openBadge}>
-          <View style={styles.dot} />
-          <Text style={styles.openText}>Abierto</Text>
+        {/* Tipo de negocio badge */}
+        <View style={styles.typeBadge}>
+          <Ionicons name={biz.ionicon as any} size={11} color={Colors.primary} />
+          <Text style={styles.typeText}>{biz.label}</Text>
         </View>
       </View>
 
@@ -48,7 +52,7 @@ export function ShopCard({ shop }: ShopCardProps) {
         </View>
         <View style={styles.footer}>
           <Text style={styles.cta}>Ver disponibilidad</Text>
-          <Ionicons name="chevron-forward" size={14} color={Colors.accent} />
+          <Ionicons name="chevron-forward" size={14} color={Colors.primary} />
         </View>
       </View>
     </TouchableOpacity>
@@ -61,7 +65,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     marginBottom: 14,
     overflow: 'hidden',
-    shadowColor: '#0D0D1A',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
@@ -78,21 +82,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  coverEmoji: { fontSize: 44 },
-  openBadge: {
+  typeBadge: {
     position: 'absolute',
     top: 10,
-    right: 10,
+    left: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 4,
     backgroundColor: 'rgba(255,255,255,0.95)',
     borderRadius: 20,
-    paddingHorizontal: 10,
+    paddingHorizontal: 9,
     paddingVertical: 4,
   },
-  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: Colors.success },
-  openText: { fontSize: 12, fontWeight: '600', color: Colors.success },
+  typeText: { fontSize: 11, fontWeight: '700', color: Colors.primary },
   info: { padding: 14 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 },
   name: { fontSize: 16, fontWeight: '700', color: Colors.text, flex: 1, marginRight: 8 },
@@ -109,5 +111,5 @@ const styles = StyleSheet.create({
   addressRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 10 },
   address: { fontSize: 13, color: Colors.textSecondary, flex: 1 },
   footer: { flexDirection: 'row', alignItems: 'center', gap: 3, borderTopWidth: 1, borderTopColor: Colors.borderLight, paddingTop: 10 },
-  cta: { fontSize: 13, fontWeight: '600', color: Colors.accent },
+  cta: { fontSize: 13, fontWeight: '600', color: Colors.primary },
 });

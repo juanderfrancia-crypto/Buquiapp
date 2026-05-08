@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import { Colors } from '@/constants';
+import { GradientView } from '@/components/ui/GradientView';
 
 interface Stats {
   totalMonth: number;
@@ -87,20 +87,16 @@ export default function StatsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
+      <StatusBar barStyle="light-content" backgroundColor={Colors.gradientStart} />
 
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={20} color={Colors.white} />
-        </TouchableOpacity>
+      <GradientView style={styles.header} direction="top-bottom">
         <View>
           <Text style={styles.headerTitle}>Estadísticas</Text>
           <Text style={styles.headerSub}>
             {monthName.charAt(0).toUpperCase() + monthName.slice(1)} {new Date().getFullYear()}
           </Text>
         </View>
-        <View style={{ width: 38 }} />
-      </View>
+      </GradientView>
 
       {loading ? (
         <ActivityIndicator style={{ marginTop: 48 }} color={Colors.primary} />
@@ -182,10 +178,10 @@ export default function StatsScreen() {
               <View style={styles.card}>
                 <View style={styles.topServiceRow}>
                   <View style={[styles.cardIcon, { backgroundColor: Colors.accentLight }]}>
-                    <Ionicons name="cut-outline" size={20} color={Colors.accentDark} />
+                    <Ionicons name="sparkles-outline" size={20} color={Colors.accentDark} />
                   </View>
                   <Text style={styles.topServiceName}>{stats.topService}</Text>
-                  <Ionicons name="trophy-outline" size={18} color={Colors.accent} />
+                  <Ionicons name="trophy-outline" size={18} color={Colors.primary} />
                 </View>
               </View>
             </>
@@ -207,18 +203,16 @@ export default function StatsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    backgroundColor: Colors.primary, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 20,
+    paddingHorizontal: 20, paddingTop: 16, paddingBottom: 20,
   },
-  backBtn: { width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontSize: 20, fontWeight: '800', color: Colors.white, textAlign: 'center', letterSpacing: -0.3 },
-  headerSub: { fontSize: 12, color: 'rgba(255,255,255,0.5)', textAlign: 'center', marginTop: 2, textTransform: 'capitalize' },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: Colors.white, letterSpacing: -0.3 },
+  headerSub: { fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 2, textTransform: 'capitalize' },
   scroll: { padding: 16, gap: 10 },
   sectionLabel: { fontSize: 12, fontWeight: '700', color: Colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.8, marginTop: 6 },
   row: { flexDirection: 'row', gap: 10 },
   card: {
     backgroundColor: Colors.surface, borderRadius: 16, padding: 16,
-    shadowColor: '#0D0D1A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
+    shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
   },
   cardHalf: { flex: 1 },
   cardIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: Colors.background, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },

@@ -3,7 +3,7 @@ import { Service, Barbershop } from '@/types';
 
 interface BookingDraft {
   barbershop: Barbershop | null;
-  service: Service | null;
+  services: Service[];
   date: Date | null;
   startTime: string | null;
 }
@@ -11,7 +11,7 @@ interface BookingDraft {
 interface BookingState {
   draft: BookingDraft;
   setDraftBarbershop: (shop: Barbershop) => void;
-  setDraftService: (service: Service) => void;
+  setDraftServices: (services: Service[]) => void;
   setDraftDate: (date: Date) => void;
   setDraftTime: (time: string) => void;
   clearDraft: () => void;
@@ -19,7 +19,7 @@ interface BookingState {
 
 const emptyDraft: BookingDraft = {
   barbershop: null,
-  service: null,
+  services: [],
   date: null,
   startTime: null,
 };
@@ -28,10 +28,10 @@ export const useBookingStore = create<BookingState>((set) => ({
   draft: emptyDraft,
 
   setDraftBarbershop: (barbershop) =>
-    set((s) => ({ draft: { ...s.draft, barbershop, service: null, date: null, startTime: null } })),
+    set((s) => ({ draft: { ...s.draft, barbershop, services: [], date: null, startTime: null } })),
 
-  setDraftService: (service) =>
-    set((s) => ({ draft: { ...s.draft, service, date: null, startTime: null } })),
+  setDraftServices: (services) =>
+    set((s) => ({ draft: { ...s.draft, services, date: null, startTime: null } })),
 
   setDraftDate: (date) =>
     set((s) => ({ draft: { ...s.draft, date, startTime: null } })),

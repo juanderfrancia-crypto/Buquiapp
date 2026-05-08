@@ -1,34 +1,49 @@
 export const Colors = {
-  // Brand
-  primary: '#1A1A2E',
-  primaryLight: '#252545',
-  accent: '#E8B86D',
+  // ─── Azul Buqui (del icono) ──────────────────────────────────────────
+  primary:      '#2F6BFF',   // Azul marca — cards, highlights, links
+  primaryDark:  '#1E4ED8',
+  primaryDeep:  '#0F2FA8',
+  primaryLight: '#93C5FD',
+  primaryBg:    '#EFF6FF',   // Fondo azul muy suave
+
+  // ─── Gradient stops (headers) ────────────────────────────────────────
+  gradientStart: '#2F6BFF',
+  gradientMid:   '#1E4ED8',
+  gradientEnd:   '#0F2FA8',
+
+  // ─── Accent dorado ───────────────────────────────────────────────────
+  accent:      '#E8B86D',
   accentLight: 'rgba(232,184,109,0.15)',
-  accentDark: '#C49A45',
+  accentDark:  '#C49A45',
 
-  // Backgrounds
-  background: '#F4F4F8',
-  surface: '#FFFFFF',
-  white: '#FFFFFF',
-  overlay: 'rgba(15,14,23,0.55)',
+  // ─── Fondos — blanco dominante ───────────────────────────────────────
+  background:  '#FFFFFF',
+  surface:     '#FFFFFF',
+  surfaceGrey: '#F5F5F5',   // secciones y fondos de inputs
+  white:       '#FFFFFF',
+  overlay:     'rgba(0,0,0,0.55)',
 
-  // Text
-  text: '#0D0D1A',
-  textSecondary: '#64748B',
-  textMuted: '#94A3B8',
+  // ─── Botones → negro ─────────────────────────────────────────────────
+  buttonBg:    '#0A0A0A',
+  buttonText:  '#FFFFFF',
 
-  // Border
-  border: '#E2E8F0',
-  borderLight: '#F1F5F9',
+  // ─── Texto ───────────────────────────────────────────────────────────
+  text:          '#0A0A0A',
+  textSecondary: '#4A4A4A',
+  textMuted:     '#9A9A9A',
 
-  // Semantic
-  success: '#22C55E',
-  successBg: '#DCFCE7',
-  warning: '#F59E0B',
-  warningBg: '#FEF3C7',
-  error: '#EF4444',
-  errorBg: '#FEE2E2',
-  info: '#3B82F6',
-  infoBg: '#DBEAFE',
-  danger: '#EF4444',
+  // ─── Bordes e inputs ─────────────────────────────────────────────────
+  border:      '#E5E5E5',
+  borderLight: '#F0F0F0',
+
+  // ─── Semánticos ──────────────────────────────────────────────────────
+  success:    '#16A34A',
+  successBg:  '#DCFCE7',
+  warning:    '#D97706',
+  warningBg:  '#FEF3C7',
+  error:      '#DC2626',
+  errorBg:    '#FEE2E2',
+  danger:     '#DC2626',
+  info:       '#2F6BFF',
+  infoBg:     '#EFF6FF',
 };

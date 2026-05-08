@@ -4,14 +4,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
-import { getAvailableSlots, calculateEndTime } from '@/lib/availability';
+import { getAvailableSlots, calculateEndTime, toLocalDateStr } from '@/lib/availability';
 import { TimeSlotPicker } from '@/components/TimeSlotPicker';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/stores/authStore';
 import { Booking, TimeSlot } from '@/types';
 import { Colors, STATUS_LABELS, STATUS_VARIANTS, DAYS_ES } from '@/constants';
-import { MOCK_BOOKINGS } from '@/lib/mockData';
+import { GradientView } from '@/components/ui/GradientView';
 
 type Filter = 'upcoming' | 'past';
 
@@ -41,27 +41,45 @@ export default function BookingsScreen() {
 
   const fetchBookings = async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from('bookings')
-      .select('*, service:services(*), barbershop:barbershops(*)')
-      .eq('user_id', user.id)
-      .order('booking_date', { ascending: false });
-    const result = (data as Booking[]) ?? [];
-    setBookings(result.length > 0 ? result : MOCK_BOOKINGS);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase
+        .from('bookings')
+        .select('*, service:services(*), barbershop:barbershops(*)')
+        .eq('user_id', user.id)
+        .order('booking_date', { ascending: false });
+      
+      if (error) {
+        console.error('Fetch bookings error:', error);
+        setBookings([]);
+      } else {
+        setBookings((data as Booking[]) ?? []);
+      }
+      setLoading(false);
+    } catch (error) {
+      console.error('Bookings fetch error:', error);
+      setLoading(false);
+    }
   };
 
   useFocusEffect(useCallback(() => { fetchBookings(); }, [user]));
 
+  // Duración real de la reserva (puede incluir múltiples servicios)
+  function getBookingDuration(booking: Booking): number {
+    const [sh, sm] = booking.start_time.split(':').map(Number);
+    const [eh, em] = booking.end_time.split(':').map(Number);
+    const diff = (eh * 60 + em) - (sh * 60 + sm);
+    return diff > 0 ? diff : (booking.service?.duration_minutes ?? 30);
+  }
+
   // Load slots whenever the reschedule date or booking changes
   useEffect(() => {
-    if (!rescheduleBooking || !rescheduleBooking.service) return;
+    if (!rescheduleBooking) return;
     setRescheduleTime(null);
     setLoadingSlots(true);
     getAvailableSlots(
       rescheduleBooking.barbershop_id,
       rescheduleDate,
-      rescheduleBooking.service.duration_minutes,
+      getBookingDuration(rescheduleBooking),
       rescheduleBooking.id
     ).then((slots) => {
       setRescheduleSlots(slots);
@@ -69,7 +87,7 @@ export default function BookingsScreen() {
     });
   }, [rescheduleBooking, rescheduleDate]);
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = toLocalDateStr(new Date());
 
   const filtered = bookings.filter(b =>
     filter === 'upcoming'
@@ -100,13 +118,17 @@ export default function BookingsScreen() {
   };
 
   const handleConfirmReschedule = async () => {
-    if (!rescheduleBooking || !rescheduleTime || !rescheduleBooking.service) return;
+    if (!rescheduleBooking || !rescheduleTime) return;
+    if (toLocalDateStr(rescheduleDate) < today) {
+      Alert.alert('Fecha inválida', 'Debes reprogramar para una fecha futura');
+      return;
+    }
     setSaving(true);
-    const endTime = calculateEndTime(rescheduleTime, rescheduleBooking.service.duration_minutes);
+    const endTime = calculateEndTime(rescheduleTime, getBookingDuration(rescheduleBooking));
     const { error } = await supabase
       .from('bookings')
       .update({
-        booking_date: rescheduleDate.toISOString().split('T')[0],
+        booking_date: toLocalDateStr(rescheduleDate),
         start_time: rescheduleTime,
         end_time: endTime,
         status: 'pending',
@@ -119,7 +141,7 @@ export default function BookingsScreen() {
     }
     setRescheduleBooking(null);
     fetchBookings();
-    Alert.alert('¡Listo!', 'Tu cita fue reprogramada. El barbero la confirmará en breve.');
+    Alert.alert('¡Listo!', 'Tu cita fue reprogramada. El negocio la confirmará en breve.');
   };
 
   const canReschedule = (booking: Booking) =>
@@ -129,9 +151,9 @@ export default function BookingsScreen() {
   const renderItem = ({ item }: { item: Booking }) => (
     <View style={styles.card}>
       <View style={styles.cardLeft}>
-        <Text style={styles.cardDate}>{item.booking_date}</Text>
+        <Text style={styles.cardDate}>{new Date(item.booking_date + 'T12:00:00').toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}</Text>
         <View style={styles.timePill}>
-          <Ionicons name="time-outline" size={12} color={Colors.primary} />
+          <Ionicons name="time-outline" size={12} color={Colors.white} />
           <Text style={styles.timeText}>{item.start_time}</Text>
         </View>
       </View>
@@ -141,7 +163,7 @@ export default function BookingsScreen() {
           <Text style={styles.shopName} numberOfLines={1}>{item.barbershop?.name}</Text>
           <Badge label={STATUS_LABELS[item.status]} variant={STATUS_VARIANTS[item.status]} size="sm" />
         </View>
-        <Text style={styles.serviceName}>{item.service?.name}</Text>
+        <Text style={styles.serviceName}>{item.notes ?? item.service?.name}</Text>
         <View style={styles.cardMeta}>
           {item.service?.price ? (
             <View style={styles.metaChip}>
@@ -149,7 +171,7 @@ export default function BookingsScreen() {
             </View>
           ) : null}
           <View style={styles.metaChip}>
-            <Text style={styles.metaChipText}>{item.service?.duration_minutes} min</Text>
+            <Text style={styles.metaChipText}>{getBookingDuration(item)} min</Text>
           </View>
         </View>
         {canReschedule(item) && (
@@ -172,11 +194,11 @@ export default function BookingsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
-      <View style={styles.header}>
+      <StatusBar barStyle="light-content" backgroundColor={Colors.gradientStart} />
+      <GradientView style={styles.header} direction="top-bottom">
         <Text style={styles.title}>Mis citas</Text>
         <Text style={styles.subtitle}>{bookings.length} en total</Text>
-      </View>
+      </GradientView>
 
       {/* Filter Tabs */}
       <View style={styles.tabs}>
@@ -209,7 +231,7 @@ export default function BookingsScreen() {
                 </View>
                 <Text style={styles.emptyTitle}>Sin citas {filter === 'upcoming' ? 'próximas' : 'pasadas'}</Text>
                 <Text style={styles.emptySub}>
-                  {filter === 'upcoming' ? 'Reserva en cualquier barbería desde la pestaña Inicio' : 'Tus citas anteriores aparecerán aquí'}
+                  {filter === 'upcoming' ? 'Reserva en cualquier negocio desde la pestaña Inicio' : 'Tus citas anteriores aparecerán aquí'}
                 </Text>
               </View>
             }
@@ -240,11 +262,11 @@ export default function BookingsScreen() {
               <View style={styles.currentCard}>
                 <View style={styles.currentCardRow}>
                   <View style={styles.currentCardIcon}>
-                    <Ionicons name="cut-outline" size={16} color={Colors.primary} />
+                    <Ionicons name="sparkles-outline" size={16} color={Colors.primary} />
                   </View>
                   <View>
                     <Text style={styles.currentCardLabel}>Servicio</Text>
-                    <Text style={styles.currentCardValue}>{rescheduleBooking.service?.name}</Text>
+                    <Text style={styles.currentCardValue}>{rescheduleBooking.notes ?? rescheduleBooking.service?.name}</Text>
                   </View>
                 </View>
                 <View style={styles.currentCardRow}>
@@ -252,7 +274,7 @@ export default function BookingsScreen() {
                     <Ionicons name="storefront-outline" size={16} color={Colors.primary} />
                   </View>
                   <View>
-                    <Text style={styles.currentCardLabel}>Barbería</Text>
+                    <Text style={styles.currentCardLabel}>Negocio</Text>
                     <Text style={styles.currentCardValue}>{rescheduleBooking.barbershop?.name}</Text>
                   </View>
                 </View>
@@ -310,7 +332,7 @@ export default function BookingsScreen() {
             <View style={styles.noticeCard}>
               <Ionicons name="information-circle-outline" size={16} color={Colors.info} />
               <Text style={styles.noticeText}>
-                Al reprogramar, tu cita vuelve a estado "pendiente" y el barbero deberá confirmarla nuevamente.
+                Al reprogramar, tu cita vuelve a estado "pendiente" y el negocio deberá confirmarla nuevamente.
               </Text>
             </View>
           </ScrollView>
@@ -332,7 +354,7 @@ export default function BookingsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  header: { backgroundColor: Colors.primary, paddingHorizontal: 20, paddingTop: 8, paddingBottom: 20 },
+  header: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 20 },
   title: { fontSize: 26, fontWeight: '800', color: Colors.white, letterSpacing: -0.4 },
   subtitle: { fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 3 },
   tabs: {
@@ -347,7 +369,7 @@ const styles = StyleSheet.create({
   list: { padding: 16, gap: 12 },
   card: {
     flexDirection: 'row', backgroundColor: Colors.surface, borderRadius: 16,
-    overflow: 'hidden', shadowColor: '#0D0D1A',
+    overflow: 'hidden', shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
   },
   cardLeft: {
@@ -357,9 +379,9 @@ const styles = StyleSheet.create({
   cardDate: { fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.7)', textAlign: 'center' },
   timePill: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: Colors.accent, borderRadius: 8, paddingHorizontal: 7, paddingVertical: 4,
+    backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 8, paddingHorizontal: 7, paddingVertical: 4,
   },
-  timeText: { fontSize: 12, fontWeight: '800', color: Colors.primary },
+  timeText: { fontSize: 12, fontWeight: '800', color: Colors.white },
   cardDivider: { width: 1, backgroundColor: Colors.borderLight },
   cardRight: { flex: 1, padding: 14 },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 },
@@ -390,7 +412,7 @@ const styles = StyleSheet.create({
   modalScroll: { padding: 16, gap: 16, paddingBottom: 32 },
   currentCard: {
     backgroundColor: Colors.surface, borderRadius: 16, paddingHorizontal: 14,
-    shadowColor: '#0D0D1A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
+    shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
   },
   currentCardRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,

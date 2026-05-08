@@ -1,5 +1,6 @@
 export type UserRole = 'client' | 'barber';
 export type BookingStatus = 'pending' | 'confirmed' | 'cancelled';
+export type BusinessType = 'barbershop' | 'beauty_salon' | 'spa' | 'other';
 
 export interface User {
   id: string;
@@ -19,6 +20,7 @@ export interface Barbershop {
   phone?: string;
   image_url?: string;
   owner_id: string;
+  business_type: BusinessType;
   rating?: number;
   is_active: boolean;
   created_at: string;
@@ -40,6 +42,8 @@ export interface Availability {
   day_of_week: number; // 0=domingo, 6=sábado
   start_time: string;  // "09:00"
   end_time: string;    // "19:00"
+  break_start?: string | null;
+  break_end?: string | null;
   is_active: boolean;
 }
 

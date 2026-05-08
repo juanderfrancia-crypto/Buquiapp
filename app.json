@@ -1,25 +1,29 @@
 {
   "expo": {
     "sdkVersion": "54.0.0",
-    "name": "BarberApp",
+    "name": "Buqui",
     "slug": "barberapp",
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "barberapp",
     "userInterfaceStyle": "automatic",
+    "icon": "./assets/images/icono.png",
     "splash": {
+      "image": "./assets/images/logo.png",
       "resizeMode": "contain",
-      "backgroundColor": "#1A1A2E"
+      "backgroundColor": "#FFFFFF"
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.tuempresa.barberapp"
+      "bundleIdentifier": "com.buqui.app",
+      "icon": "./assets/images/icono.png"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#1A1A2E"
+        "foregroundImage": "./assets/images/icono.png",
+        "backgroundColor": "#2F6BFF"
       },
-      "package": "com.tuempresa.barberapp"
+      "package": "com.buqui.app"
     },
     "web": {
       "bundler": "metro",
@@ -31,7 +35,8 @@
       [
         "expo-notifications",
         {
-          "color": "#1A1A2E"
+          "color": "#2F6BFF",
+          "disableAutoRegistration": true
         }
       ]
     ],

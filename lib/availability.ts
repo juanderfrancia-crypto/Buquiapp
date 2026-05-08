@@ -1,6 +1,14 @@
 import { supabase } from './supabase';
 import { TimeSlot } from '@/types';
 
+/** Devuelve 'YYYY-MM-DD' usando la fecha LOCAL del dispositivo, no UTC. */
+export function toLocalDateStr(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 /**
  * Genera slots de tiempo entre start y end cada `durationMinutes`
  */
@@ -23,6 +31,24 @@ function generateTimeSlots(
     current += durationMinutes;
   }
   return slots;
+}
+
+/** Devuelve true si el slot cae dentro del bloque de descanso. */
+function isInBreak(
+  slotTime: string,
+  durationMinutes: number,
+  breakStart?: string | null,
+  breakEnd?: string | null
+): boolean {
+  if (!breakStart || !breakEnd) return false;
+  const [sH, sM] = slotTime.split(':').map(Number);
+  const slotStartMin = sH * 60 + sM;
+  const slotEndMin = slotStartMin + durationMinutes;
+  const [bsH, bsM] = breakStart.split(':').map(Number);
+  const [beH, beM] = breakEnd.split(':').map(Number);
+  const breakStartMin = bsH * 60 + bsM;
+  const breakEndMin = beH * 60 + beM;
+  return slotStartMin < breakEndMin && slotEndMin > breakStartMin;
 }
 
 /**
@@ -58,12 +84,12 @@ export async function getAvailableSlots(
   excludeBookingId?: string
 ): Promise<TimeSlot[]> {
   const dayOfWeek = date.getDay();
-  const dateStr = date.toISOString().split('T')[0];
+  const dateStr = toLocalDateStr(date);
 
-  // 1. Obtener horario laboral
+  // 1. Obtener horario laboral (incluyendo pausa)
   const { data: availability, error: availError } = await supabase
     .from('availability')
-    .select('start_time, end_time')
+    .select('start_time, end_time, break_start, break_end')
     .eq('barbershop_id', barbershopId)
     .eq('day_of_week', dayOfWeek)
     .eq('is_active', true)
@@ -96,7 +122,9 @@ export async function getAvailableSlots(
 
   return allSlots.map((time) => ({
     time,
-    available: !isSlotOccupied(time, durationMinutes, existingBookings),
+    available:
+      !isSlotOccupied(time, durationMinutes, existingBookings) &&
+      !isInBreak(time, durationMinutes, availability.break_start, availability.break_end),
   }));
 }
 
@@ -106,7 +134,8 @@ export async function getAvailableSlots(
 export function calculateEndTime(startTime: string, durationMinutes: number): string {
   const [h, m] = startTime.split(':').map(Number);
   const totalMinutes = h * 60 + m + durationMinutes;
-  const endH = Math.floor(totalMinutes / 60).toString().padStart(2, '0');
-  const endM = (totalMinutes % 60).toString().padStart(2, '0');
+  const capped = Math.min(totalMinutes, 23 * 60 + 59);
+  const endH = Math.floor(capped / 60).toString().padStart(2, '0');
+  const endM = (capped % 60).toString().padStart(2, '0');
   return `${endH}:${endM}`;
 }
