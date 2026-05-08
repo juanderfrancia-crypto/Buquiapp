@@ -18,7 +18,7 @@ const SLIDES = [
     icon: null,
     showLogo: true,
     title: 'Bienvenido a Buqui',
-    subtitle: 'La app que conecta clientes con negocios de bienestar y belleza. Reserva en segundos, sin llamadas.',
+    subtitle: 'La app que conecta clientes y negocios. Reserva tu turno en segundos, sin llamadas.',
   },
   {
     key: '2',
