@@ -61,7 +61,7 @@ export default function ReservasPage() {
     if (err) {
       setError('No se pudieron cargar las reservas.');
     } else {
-      const rows = (data as Reserva[]) ?? [];
+      const rows = (data as unknown as Reserva[]) ?? [];
       setReservas(pageIndex === 0 ? rows : prev => [...prev, ...rows]);
       setHasMore(rows.length === PAGE_SIZE + 1);
       if (rows.length === PAGE_SIZE + 1) rows.pop();

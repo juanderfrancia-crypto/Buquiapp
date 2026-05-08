@@ -40,7 +40,7 @@ export default function NegociosPage() {
     if (err) {
       setError('No se pudieron cargar los negocios.');
     } else {
-      setNegocios((data as Negocio[]) ?? []);
+      setNegocios((data as unknown as Negocio[]) ?? []);
     }
     setLoading(false);
   }, []);
