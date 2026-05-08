@@ -5,7 +5,7 @@
     "slug": "barberapp",
     "version": "1.0.0",
     "orientation": "portrait",
-    "scheme": "barberapp",
+    "scheme": "buqui",
     "userInterfaceStyle": "automatic",
     "icon": "./assets/images/icono.png",
     "splash": {
@@ -23,7 +23,23 @@
         "foregroundImage": "./assets/images/icono.png",
         "backgroundColor": "#2F6BFF"
       },
-      "package": "com.buqui.app"
+      "package": "com.buqui.app",
+      "versionCode": 1,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "buqui"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -38,11 +54,13 @@
           "color": "#2F6BFF",
           "disableAutoRegistration": true
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
     },
+    "privacyPolicyUrl": "https://juanderfrancia-crypto.github.io/Buquiapp/privacy-policy.html",
     "extra": {
       "router": {},
       "eas": {

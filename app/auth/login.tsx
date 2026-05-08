@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   Alert, KeyboardAvoidingView, Platform, Modal, TextInput, Image, StatusBar, Keyboard,
 } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
@@ -59,7 +60,7 @@ export default function LoginScreen() {
     }
     setRecoverySending(true);
     const { error } = await supabase.auth.resetPasswordForEmail(recoveryEmail.trim(), {
-      redirectTo: 'barberly://auth/reset-password',
+      redirectTo: 'buqui://auth/reset-password',
     });
     setRecoverySending(false);
     setRecoveryVisible(false);
@@ -141,6 +142,24 @@ export default function LoginScreen() {
               <Text style={styles.registerText}>Crear cuenta gratis</Text>
               <Ionicons name="arrow-forward" size={15} color={Colors.white} />
             </TouchableOpacity>
+
+            <Text style={styles.legalText}>
+              Al usar Buqui, aceptas nuestra{' '}
+              <Text
+                style={styles.legalLink}
+                onPress={() => WebBrowser.openBrowserAsync('https://juanderfrancia-crypto.github.io/Buquiapp/privacy-policy.html')}
+              >
+                Política de Privacidad
+              </Text>
+              {' '}y los{' '}
+              <Text
+                style={styles.legalLink}
+                onPress={() => WebBrowser.openBrowserAsync('https://juanderfrancia-crypto.github.io/Buquiapp/terms.html')}
+              >
+                Términos de Uso
+              </Text>
+              .
+            </Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -249,4 +268,9 @@ const styles = StyleSheet.create({
   modalCancelText: { fontSize: 14, fontWeight: '600', color: Colors.textSecondary },
   modalSendBtn: { flex: 1.5, paddingVertical: 13, borderRadius: 12, backgroundColor: Colors.buttonBg, alignItems: 'center' },
   modalSendText: { fontSize: 14, fontWeight: '700', color: Colors.white },
+  legalText: {
+    fontSize: 12, color: Colors.textMuted, textAlign: 'center',
+    marginTop: 20, lineHeight: 18, paddingHorizontal: 8,
+  },
+  legalLink: { color: Colors.primary, fontWeight: '600' },
 });
