@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase';
 
 type Usuario = {
@@ -25,28 +25,42 @@ type RoleFilter = 'all' | 'client' | 'barber';
 export default function UsuariosPage() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<RoleFilter>('all');
   const [search, setSearch] = useState('');
 
-  async function load() {
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     const supabase = createClient();
-    const { data } = await supabase
+    const { data, error: err } = await supabase
       .from('users')
-      .select('*')
+      .select('id, name, email, role, phone, is_active, created_at')
       .order('created_at', { ascending: false });
-    setUsuarios((data as Usuario[]) ?? []);
+    if (err) {
+      setError('No se pudieron cargar los usuarios.');
+    } else {
+      setUsuarios((data as Usuario[]) ?? []);
+    }
     setLoading(false);
-  }
+  }, []);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [load]);
 
   async function toggleActive(id: string, current: boolean) {
     const supabase = createClient();
-    await supabase.from('users').update({ is_active: !current }).eq('id', id);
-    setUsuarios(prev => prev.map(u => u.id === id ? { ...u, is_active: !current } : u));
+    const { error: err } = await supabase
+      .from('users')
+      .update({ is_active: !current })
+      .eq('id', id);
+    if (!err) {
+      setUsuarios(prev => prev.map(u => u.id === id ? { ...u, is_active: !current } : u));
+    }
   }
 
-  const filtered = usuarios.filter(u => {
+  const nonAdmins = usuarios.filter(u => u.role !== 'admin');
+
+  const filtered = nonAdmins.filter(u => {
     const matchRole = filter === 'all' || u.role === filter;
     const q = search.toLowerCase();
     const matchSearch = !search || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
@@ -54,9 +68,9 @@ export default function UsuariosPage() {
   });
 
   const tabs: { key: RoleFilter; label: string }[] = [
-    { key: 'all',    label: `Todos (${usuarios.filter(u => u.role !== 'admin').length})` },
-    { key: 'client', label: `Clientes (${usuarios.filter(u => u.role === 'client').length})` },
-    { key: 'barber', label: `Barberos (${usuarios.filter(u => u.role === 'barber').length})` },
+    { key: 'all',    label: `Todos (${nonAdmins.length})` },
+    { key: 'client', label: `Clientes (${nonAdmins.filter(u => u.role === 'client').length})` },
+    { key: 'barber', label: `Barberos (${nonAdmins.filter(u => u.role === 'barber').length})` },
   ];
 
   return (
@@ -66,7 +80,6 @@ export default function UsuariosPage() {
         <p className="text-sm text-gray-500 mt-0.5">Gestiona las cuentas de la plataforma</p>
       </div>
 
-      {/* Filters */}
       <div className="flex items-center gap-3">
         <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
           {tabs.map(({ key, label }) => (
@@ -92,6 +105,13 @@ export default function UsuariosPage() {
         />
       </div>
 
+      {error && (
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
+          <span>{error}</span>
+          <button onClick={load} className="ml-auto text-xs font-medium underline">Reintentar</button>
+        </div>
+      )}
+
       <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
         <table className="w-full text-sm">
           <thead>
@@ -108,7 +128,7 @@ export default function UsuariosPage() {
             {loading && (
               <tr><td colSpan={6} className="px-6 py-12 text-center text-sm text-gray-400">Cargando...</td></tr>
             )}
-            {!loading && filtered.map(u => (
+            {!loading && !error && filtered.map(u => (
               <tr key={u.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
@@ -140,22 +160,20 @@ export default function UsuariosPage() {
                   </span>
                 </td>
                 <td className="px-6 py-4">
-                  {u.role !== 'admin' && (
-                    <button
-                      onClick={() => toggleActive(u.id, u.is_active)}
-                      className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-all ${
-                        u.is_active
-                          ? 'border-red-200 text-red-600 hover:bg-red-50'
-                          : 'border-emerald-200 text-emerald-600 hover:bg-emerald-50'
-                      }`}
-                    >
-                      {u.is_active ? 'Desactivar' : 'Activar'}
-                    </button>
-                  )}
+                  <button
+                    onClick={() => toggleActive(u.id, u.is_active)}
+                    className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-all ${
+                      u.is_active
+                        ? 'border-red-200 text-red-600 hover:bg-red-50'
+                        : 'border-emerald-200 text-emerald-600 hover:bg-emerald-50'
+                    }`}
+                  >
+                    {u.is_active ? 'Desactivar' : 'Activar'}
+                  </button>
                 </td>
               </tr>
             ))}
-            {!loading && filtered.length === 0 && (
+            {!loading && !error && filtered.length === 0 && (
               <tr><td colSpan={6} className="px-6 py-12 text-center text-sm text-gray-400">Sin resultados</td></tr>
             )}
           </tbody>

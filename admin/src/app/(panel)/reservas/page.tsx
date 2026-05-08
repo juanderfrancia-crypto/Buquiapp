@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase';
 
 type Reserva = {
@@ -29,39 +29,60 @@ const STATUS_STYLE: Record<string, string> = {
 
 type StatusFilter = 'all' | 'pending' | 'confirmed' | 'cancelled';
 
+const PAGE_SIZE = 50;
+
 export default function ReservasPage() {
   const [reservas, setReservas] = useState<Reserva[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<StatusFilter>('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
 
-  async function load() {
+  const load = useCallback(async (pageIndex = 0) => {
     setLoading(true);
+    setError(null);
     const supabase = createClient();
     let query = supabase
       .from('bookings')
-      .select('*, service:services(name,price), barbershop:barbershops(name), user:users(name,email)')
+      .select('id, booking_date, start_time, end_time, status, notes, created_at, service:services(name,price), barbershop:barbershops(name), user:users(name,email)')
       .order('booking_date', { ascending: false })
       .order('start_time', { ascending: false })
-      .limit(200);
+      .range(pageIndex * PAGE_SIZE, (pageIndex + 1) * PAGE_SIZE);
 
     if (status !== 'all') query = query.eq('status', status);
     if (dateFrom) query = query.gte('booking_date', dateFrom);
     if (dateTo) query = query.lte('booking_date', dateTo);
 
-    const { data } = await query;
-    setReservas((data as any) ?? []);
+    const { data, error: err } = await query;
+    if (err) {
+      setError('No se pudieron cargar las reservas.');
+    } else {
+      const rows = (data as Reserva[]) ?? [];
+      setReservas(pageIndex === 0 ? rows : prev => [...prev, ...rows]);
+      setHasMore(rows.length === PAGE_SIZE + 1);
+      if (rows.length === PAGE_SIZE + 1) rows.pop();
+    }
     setLoading(false);
-  }
+  }, [status, dateFrom, dateTo]);
 
-  useEffect(() => { load(); }, [status, dateFrom, dateTo]);
+  useEffect(() => {
+    setPage(0);
+    load(0);
+  }, [load]);
 
   const filtered = reservas.filter(r => {
     if (!search) return true;
     const q = search.toLowerCase();
-    return r.user?.name?.toLowerCase().includes(q) || r.barbershop?.name?.toLowerCase().includes(q);
+    return (
+      r.user?.name?.toLowerCase().includes(q) ||
+      r.barbershop?.name?.toLowerCase().includes(q) ||
+      r.service?.name?.toLowerCase().includes(q) ||
+      false
+    );
   });
 
   const tabs: { key: StatusFilter; label: string }[] = [
@@ -71,6 +92,12 @@ export default function ReservasPage() {
     { key: 'cancelled', label: 'Canceladas' },
   ];
 
+  function loadMore() {
+    const next = page + 1;
+    setPage(next);
+    load(next);
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -78,7 +105,6 @@ export default function ReservasPage() {
         <p className="text-sm text-gray-500 mt-0.5">{filtered.length} reservas encontradas</p>
       </div>
 
-      {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
           {tabs.map(({ key, label }) => (
@@ -99,7 +125,7 @@ export default function ReservasPage() {
           type="text"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Buscar cliente o negocio..."
+          placeholder="Buscar cliente, negocio o servicio..."
           className="flex-1 min-w-48 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
         />
         <div className="flex items-center gap-2">
@@ -119,6 +145,13 @@ export default function ReservasPage() {
         </div>
       </div>
 
+      {error && (
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
+          <span>{error}</span>
+          <button onClick={() => load(0)} className="ml-auto text-xs font-medium underline">Reintentar</button>
+        </div>
+      )}
+
       <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
         <table className="w-full text-sm">
           <thead>
@@ -132,10 +165,10 @@ export default function ReservasPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
-            {loading && (
+            {loading && page === 0 && (
               <tr><td colSpan={6} className="px-6 py-12 text-center text-sm text-gray-400">Cargando...</td></tr>
             )}
-            {!loading && filtered.map(r => (
+            {!loading && !error && filtered.map(r => (
               <tr key={r.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-6 py-4">
                   <p className="font-medium text-gray-900">{r.user?.name ?? '—'}</p>
@@ -151,17 +184,33 @@ export default function ReservasPage() {
                   {r.service?.price ? `$${r.service.price.toLocaleString('es-CO')}` : '—'}
                 </td>
                 <td className="px-6 py-4">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_STYLE[r.status]}`}>
-                    {STATUS_LABEL[r.status]}
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_STYLE[r.status] ?? 'bg-gray-100 text-gray-600'}`}>
+                    {STATUS_LABEL[r.status] ?? r.status}
                   </span>
                 </td>
               </tr>
             ))}
-            {!loading && filtered.length === 0 && (
+            {!loading && !error && filtered.length === 0 && (
               <tr><td colSpan={6} className="px-6 py-12 text-center text-sm text-gray-400">Sin reservas</td></tr>
             )}
           </tbody>
         </table>
+
+        {hasMore && !loading && (
+          <div className="px-6 py-4 border-t border-gray-100 text-center">
+            <button
+              onClick={loadMore}
+              className="text-sm font-medium text-blue-600 hover:text-blue-700"
+            >
+              Cargar más
+            </button>
+          </div>
+        )}
+        {loading && page > 0 && (
+          <div className="px-6 py-4 border-t border-gray-100 text-center text-sm text-gray-400">
+            Cargando...
+          </div>
+        )}
       </div>
     </div>
   );

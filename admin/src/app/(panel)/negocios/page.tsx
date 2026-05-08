@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase';
 
 type Negocio = {
@@ -25,29 +25,45 @@ type Filter = 'all' | 'active' | 'inactive';
 export default function NegociosPage() {
   const [negocios, setNegocios] = useState<Negocio[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
+  const [search, setSearch] = useState('');
 
-  async function load() {
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     const supabase = createClient();
-    const { data } = await supabase
+    const { data, error: err } = await supabase
       .from('barbershops')
-      .select('*, owner:users(name,email)')
+      .select('id, name, address, business_type, is_active, created_at, owner:users(name,email)')
       .order('created_at', { ascending: false });
-    setNegocios((data as any) ?? []);
+    if (err) {
+      setError('No se pudieron cargar los negocios.');
+    } else {
+      setNegocios((data as Negocio[]) ?? []);
+    }
     setLoading(false);
-  }
+  }, []);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [load]);
 
   async function toggleActive(id: string, current: boolean) {
     const supabase = createClient();
-    await supabase.from('barbershops').update({ is_active: !current }).eq('id', id);
-    setNegocios(prev => prev.map(n => n.id === id ? { ...n, is_active: !current } : n));
+    const { error: err } = await supabase
+      .from('barbershops')
+      .update({ is_active: !current })
+      .eq('id', id);
+    if (!err) {
+      setNegocios(prev => prev.map(n => n.id === id ? { ...n, is_active: !current } : n));
+    }
   }
 
-  const filtered = negocios.filter(n =>
-    filter === 'all' ? true : filter === 'active' ? n.is_active : !n.is_active
-  );
+  const filtered = negocios.filter(n => {
+    const matchFilter = filter === 'all' ? true : filter === 'active' ? n.is_active : !n.is_active;
+    const q = search.toLowerCase();
+    const matchSearch = !search || n.name.toLowerCase().includes(q) || n.owner?.name?.toLowerCase().includes(q) || '';
+    return matchFilter && matchSearch;
+  });
 
   const tabs: { key: Filter; label: string }[] = [
     { key: 'all',      label: `Todos (${negocios.length})` },
@@ -62,22 +78,37 @@ export default function NegociosPage() {
         <p className="text-sm text-gray-500 mt-0.5">Gestiona los negocios registrados en la plataforma</p>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 p-1 rounded-lg w-fit">
-        {tabs.map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => setFilter(key)}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-              filter === key
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+          {tabs.map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setFilter(key)}
+              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                filter === key
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <input
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Buscar por nombre o propietario..."
+          className="flex-1 min-w-48 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+        />
       </div>
+
+      {error && (
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
+          <span>{error}</span>
+          <button onClick={load} className="ml-auto text-xs font-medium underline">Reintentar</button>
+        </div>
+      )}
 
       <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
         <table className="w-full text-sm">
@@ -95,7 +126,7 @@ export default function NegociosPage() {
             {loading && (
               <tr><td colSpan={6} className="px-6 py-12 text-center text-sm text-gray-400">Cargando...</td></tr>
             )}
-            {!loading && filtered.map(n => (
+            {!loading && !error && filtered.map(n => (
               <tr key={n.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-6 py-4">
                   <p className="font-medium text-gray-900">{n.name}</p>
@@ -134,7 +165,7 @@ export default function NegociosPage() {
                 </td>
               </tr>
             ))}
-            {!loading && filtered.length === 0 && (
+            {!loading && !error && filtered.length === 0 && (
               <tr><td colSpan={6} className="px-6 py-12 text-center text-sm text-gray-400">Sin negocios</td></tr>
             )}
           </tbody>
