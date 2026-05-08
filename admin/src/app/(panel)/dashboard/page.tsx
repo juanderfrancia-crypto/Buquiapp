@@ -102,10 +102,10 @@ export default async function DashboardPage() {
     <div className="space-y-6">
       {/* KPI grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Clientes registrados" value={stats.totalUsers}   Icon={IconUsers}    iconBg="bg-blue-50"    iconColor="text-blue-600" />
-        <StatCard label="Negocios activos"      value={stats.totalNegocios} Icon={IconStore}  iconBg="bg-indigo-50"  iconColor="text-indigo-600" />
-        <StatCard label="Reservas hoy"          value={stats.reservasHoy} Icon={IconCalendar} iconBg="bg-violet-50"  iconColor="text-violet-600" />
-        <StatCard label="Reservas este mes"     value={stats.reservasMes} Icon={IconTrendUp}  iconBg="bg-emerald-50" iconColor="text-emerald-600" />
+        <StatCard label="Clientes registrados" value={stats.totalUsers}     Icon={IconUsers}    iconBg="bg-gradient-to-br from-blue-500 to-blue-700"     iconColor="text-white" />
+        <StatCard label="Negocios activos"      value={stats.totalNegocios}  Icon={IconStore}    iconBg="bg-gradient-to-br from-indigo-500 to-violet-700"  iconColor="text-white" />
+        <StatCard label="Reservas hoy"          value={stats.reservasHoy}   Icon={IconCalendar} iconBg="bg-gradient-to-br from-violet-500 to-purple-700"  iconColor="text-white" />
+        <StatCard label="Reservas este mes"     value={stats.reservasMes}   Icon={IconTrendUp}  iconBg="bg-gradient-to-br from-emerald-500 to-green-700"  iconColor="text-white" />
       </div>
 
       {/* Chart + estado de reservas */}
@@ -117,33 +117,33 @@ export default async function DashboardPage() {
 
         {/* Estado cards */}
         <div className="col-span-2 flex flex-col gap-4">
-          <div className="bg-white rounded-xl border border-gray-100 p-5 flex items-center gap-4 flex-1">
-            <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
-              <IconClock className="w-4 h-4 text-amber-500" />
+          <div className="bg-white rounded-2xl border border-amber-100 p-5 flex items-center gap-4 flex-1 shadow-sm hover:shadow-md transition-shadow group">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center flex-shrink-0 shadow-md shadow-amber-200">
+              <IconClock className="w-4.5 h-4.5 text-white" />
             </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">{stats.pendientes}</p>
-              <p className="text-xs font-medium text-gray-500">Pendientes</p>
+            <div className="flex-1">
+              <p className="text-3xl font-black text-gray-900 tracking-tight group-hover:text-amber-500 transition-colors">{stats.pendientes}</p>
+              <p className="text-xs font-semibold text-gray-600">Pendientes</p>
               <p className="text-xs text-gray-400">Esperando confirmación</p>
             </div>
           </div>
-          <div className="bg-white rounded-xl border border-gray-100 p-5 flex items-center gap-4 flex-1">
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
-              <IconCheck className="w-4 h-4 text-emerald-600" />
+          <div className="bg-white rounded-2xl border border-emerald-100 p-5 flex items-center gap-4 flex-1 shadow-sm hover:shadow-md transition-shadow group">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-green-600 flex items-center justify-center flex-shrink-0 shadow-md shadow-emerald-200">
+              <IconCheck className="w-4.5 h-4.5 text-white" />
             </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">{stats.confirmadas}</p>
-              <p className="text-xs font-medium text-gray-500">Confirmadas</p>
+            <div className="flex-1">
+              <p className="text-3xl font-black text-gray-900 tracking-tight group-hover:text-emerald-600 transition-colors">{stats.confirmadas}</p>
+              <p className="text-xs font-semibold text-gray-600">Confirmadas</p>
               <p className="text-xs text-gray-400">Tasa: {tasaConfirmacion}%</p>
             </div>
           </div>
-          <div className="bg-white rounded-xl border border-gray-100 p-5 flex items-center gap-4 flex-1">
-            <div className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
-              <IconX className="w-4 h-4 text-red-500" />
+          <div className="bg-white rounded-2xl border border-red-100 p-5 flex items-center gap-4 flex-1 shadow-sm hover:shadow-md transition-shadow group">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-400 to-rose-600 flex items-center justify-center flex-shrink-0 shadow-md shadow-red-200">
+              <IconX className="w-4.5 h-4.5 text-white" />
             </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">{stats.canceladas}</p>
-              <p className="text-xs font-medium text-gray-500">Canceladas</p>
+            <div className="flex-1">
+              <p className="text-3xl font-black text-gray-900 tracking-tight group-hover:text-red-500 transition-colors">{stats.canceladas}</p>
+              <p className="text-xs font-semibold text-gray-600">Canceladas</p>
               <p className="text-xs text-gray-400">Total histórico</p>
             </div>
           </div>
@@ -151,10 +151,10 @@ export default async function DashboardPage() {
       </div>
 
       {/* Tabla últimas reservas */}
-      <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <div>
-            <h2 className="text-sm font-semibold text-gray-900">Últimas reservas</h2>
+            <h2 className="text-sm font-bold text-gray-900">Últimas reservas</h2>
             <p className="text-xs text-gray-400 mt-0.5">Las 8 más recientes</p>
           </div>
           <a href="/reservas" className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1">

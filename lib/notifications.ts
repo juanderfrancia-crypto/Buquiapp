@@ -4,7 +4,10 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { supabase } from './supabase';
 
-if (Device.isDevice) {
+// 'storeClient' = Expo Go; push notifications no están soportadas ahí desde SDK 53
+const isExpoGo = Constants.executionEnvironment === 'storeClient';
+
+if (Device.isDevice && !isExpoGo) {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowAlert: true,
@@ -25,7 +28,7 @@ function getProjectId(): string | undefined {
 
 export async function registerPushToken(userId: string): Promise<void> {
   try {
-    if (!Device.isDevice) return;
+    if (!Device.isDevice || isExpoGo) return;
 
     const projectId = getProjectId();
     if (!projectId) return; // sin EAS configurado, no hay push token en Expo Go

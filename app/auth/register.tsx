@@ -50,7 +50,6 @@ export default function RegisterScreen() {
           <TouchableOpacity style={[styles.backBtn, { top: insets.top + 12 }]} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={20} color={Colors.text} />
           </TouchableOpacity>
-          <Image source={require('@/assets/images/icono.png')} style={styles.appIcon} />
           <Image source={require('@/assets/images/logo.png')} style={styles.logoImg} resizeMode="contain" />
           <Text style={styles.tagline}>Crea tu cuenta en segundos</Text>
         </View>
@@ -112,9 +111,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surfaceGrey,
     alignItems: 'center', justifyContent: 'center',
   },
-  appIcon: { width: 68, height: 68, borderRadius: 18 },
-  logoImg: { width: 140, height: 38 },
-  tagline: { fontSize: 13, color: Colors.textMuted },
+  logoImg: { width: '95%' as any, height: 200 },
+  tagline: { fontSize: 14, color: Colors.textMuted, marginTop: -75 },
   card: {
     backgroundColor: Colors.white,
     borderTopLeftRadius: 32, borderTopRightRadius: 32,

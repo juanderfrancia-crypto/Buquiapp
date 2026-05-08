@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { View } from 'react-native';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '@/stores/authStore';
@@ -36,9 +36,5 @@ export default function Index() {
     }
   }, [session, user, loading, checkingOnboarding, onboardingDone]);
 
-  return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.primary }}>
-      <ActivityIndicator color={Colors.white} size="large" />
-    </View>
-  );
+  return <View style={{ flex: 1, backgroundColor: Colors.white }} />;
 }

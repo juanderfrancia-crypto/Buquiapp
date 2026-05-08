@@ -23,45 +23,44 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="w-56 min-h-screen flex flex-col bg-white border-r border-gray-100">
+    <aside className="w-60 min-h-screen flex flex-col bg-gray-950 flex-shrink-0">
       {/* Logo */}
-      <div className="flex items-center gap-3 px-5 py-5 border-b border-gray-100">
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#2F6BFF,#0F2FA8)' }}>
-          <span className="text-white font-black text-sm">B</span>
-        </div>
+      <div className="flex items-center gap-3 px-5 py-5 border-b border-white/5">
+        <img src="/icono.png" alt="Buqui" className="w-9 h-9 rounded-xl shadow-lg shadow-blue-900/40" />
         <div>
-          <p className="text-gray-900 font-bold text-sm leading-tight">Buqui</p>
-          <p className="text-gray-400 text-xs">Admin Panel</p>
+          <p className="text-white font-bold text-sm leading-tight">Buqui</p>
+          <p className="text-gray-500 text-xs">Admin Panel</p>
         </div>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 flex flex-col gap-0.5">
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">Menú</p>
+      <nav className="flex-1 px-3 py-5 flex flex-col gap-0.5">
+        <p className="text-xs font-semibold text-gray-600 uppercase tracking-widest px-3 mb-3">Menú</p>
         {nav.map(({ href, label, Icon }) => {
           const active = pathname === href;
           return (
             <Link
               key={href}
               href={href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 active
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50'
+                  : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'
               }`}
             >
-              <Icon className={`w-4 h-4 flex-shrink-0 ${active ? 'text-blue-600' : 'text-gray-400'}`} />
+              <Icon className={`w-4 h-4 flex-shrink-0 ${active ? 'text-white' : 'text-gray-500'}`} />
               {label}
+              {active && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white/60" />}
             </Link>
           );
         })}
       </nav>
 
-      {/* Logout */}
-      <div className="px-3 pb-5 border-t border-gray-100 pt-4">
+      {/* User logout */}
+      <div className="px-3 pb-5 border-t border-white/5 pt-4">
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:bg-red-50 hover:text-red-600 transition-all"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:bg-red-500/10 hover:text-red-400 transition-all"
         >
           <IconLogOut className="w-4 h-4 flex-shrink-0" />
           Cerrar sesión
