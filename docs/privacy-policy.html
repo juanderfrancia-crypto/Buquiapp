@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Política de Privacidad — Buqui</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      line-height: 1.7;
+      font-size: 16px;
+    }
+    header {
+      background: linear-gradient(135deg, #1e3a8a, #2563eb);
+      color: white;
+      padding: 48px 24px 40px;
+      text-align: center;
+    }
+    header h1 { font-size: 2rem; font-weight: 800; letter-spacing: -0.5px; }
+    header p { margin-top: 8px; color: rgba(255,255,255,0.75); font-size: 0.95rem; }
+    main {
+      max-width: 760px;
+      margin: 48px auto;
+      padding: 0 24px 64px;
+    }
+    .card {
+      background: white;
+      border-radius: 16px;
+      border: 1px solid #e2e8f0;
+      padding: 40px;
+      box-shadow: 0 1px 12px rgba(0,0,0,0.06);
+    }
+    .update-badge {
+      display: inline-block;
+      background: #eff6ff;
+      color: #1d4ed8;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 100px;
+      margin-bottom: 32px;
+    }
+    h2 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin-top: 36px;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #eff6ff;
+    }
+    h2:first-of-type { margin-top: 0; }
+    p { color: #475569; margin-bottom: 12px; }
+    ul { color: #475569; padding-left: 20px; margin-bottom: 12px; }
+    ul li { margin-bottom: 6px; }
+    a { color: #2563eb; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .highlight {
+      background: #eff6ff;
+      border-left: 4px solid #2563eb;
+      padding: 16px 20px;
+      border-radius: 0 8px 8px 0;
+      margin: 20px 0;
+      color: #1e40af;
+      font-size: 0.95rem;
+    }
+    footer {
+      text-align: center;
+      padding: 32px 24px;
+      color: #94a3b8;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Política de Privacidad</h1>
+  <p>Buqui — Plataforma de reservas para negocios de belleza y bienestar</p>
+</header>
+
+<main>
+  <div class="card">
+    <span class="update-badge">Última actualización: Mayo 2025</span>
+
+    <h2>1. Quiénes somos</h2>
+    <p>
+      Buqui es una aplicación móvil que conecta clientes con barberías, salones de belleza y spas,
+      permitiendo reservar citas de forma rápida y sencilla. Esta política explica qué información
+      recopilamos, cómo la usamos y cuáles son tus derechos.
+    </p>
+    <p>
+      Si tienes preguntas, puedes contactarnos en:
+      <a href="mailto:soporte@buqui.app">soporte@buqui.app</a>
+    </p>
+
+    <h2>2. Información que recopilamos</h2>
+    <p>Recopilamos únicamente la información necesaria para que la app funcione:</p>
+    <ul>
+      <li><strong>Datos de cuenta:</strong> nombre completo, correo electrónico y contraseña (almacenada de forma encriptada)</li>
+      <li><strong>Datos de perfil:</strong> número de teléfono (opcional) y foto de perfil (opcional)</li>
+      <li><strong>Datos de reservas:</strong> fecha, hora, servicio y negocio de cada cita que reservas</li>
+      <li><strong>Datos del negocio</strong> (solo para barberos/propietarios): nombre del negocio, dirección, horarios y servicios ofrecidos</li>
+      <li><strong>Token de notificaciones:</strong> para enviarte recordatorios de tus citas (solo si aceptas las notificaciones)</li>
+    </ul>
+
+    <div class="highlight">
+      No recopilamos datos de ubicación en tiempo real, no accedemos a tu cámara sin tu acción explícita y no compartimos tu información con terceros con fines publicitarios.
+    </div>
+
+    <h2>3. Cómo usamos tu información</h2>
+    <p>Usamos tu información exclusivamente para:</p>
+    <ul>
+      <li>Crear y gestionar tu cuenta en Buqui</li>
+      <li>Procesar y confirmar tus reservas de citas</li>
+      <li>Enviarte notificaciones sobre el estado de tus citas (confirmación, recordatorio, cancelación)</li>
+      <li>Permitir a los dueños de negocios gestionar su agenda y sus clientes</li>
+      <li>Mejorar la app mediante análisis de uso anónimo y agregado</li>
+      <li>Responder a tus solicitudes de soporte</li>
+    </ul>
+
+    <h2>4. Almacenamiento y seguridad</h2>
+    <p>
+      Tu información se almacena en servidores seguros proporcionados por
+      <a href="https://supabase.com/privacy" target="_blank">Supabase</a>, un proveedor de base de datos
+      con cifrado en tránsito (TLS) y en reposo. Aplicamos las siguientes medidas de seguridad:
+    </p>
+    <ul>
+      <li>Contraseñas encriptadas con bcrypt (nunca se almacenan en texto plano)</li>
+      <li>Acceso a datos protegido por políticas de seguridad a nivel de fila (Row Level Security)</li>
+      <li>Panel de administración protegido con autenticación de dos capas</li>
+      <li>Comunicaciones cifradas con HTTPS/TLS</li>
+    </ul>
+
+    <h2>5. Compartir información con terceros</h2>
+    <p>
+      No vendemos ni alquilamos tu información personal. Solo compartimos datos con:
+    </p>
+    <ul>
+      <li><strong>Supabase:</strong> proveedor de base de datos e infraestructura (procesa datos bajo nuestras instrucciones)</li>
+      <li><strong>Expo / Firebase:</strong> para el envío de notificaciones push (solo el token de dispositivo, sin datos personales)</li>
+      <li><strong>Negocios registrados en Buqui:</strong> cuando realizas una reserva, el negocio recibe tu nombre y los datos de la cita para poder atenderte</li>
+    </ul>
+    <p>En caso de requerimiento legal, podríamos estar obligados a compartir información con autoridades competentes.</p>
+
+    <h2>6. Retención de datos</h2>
+    <p>
+      Conservamos tu información mientras tu cuenta esté activa. Si eliminas tu cuenta,
+      tus datos personales serán eliminados en un plazo máximo de 30 días, excepto aquellos
+      que debamos conservar por obligaciones legales.
+    </p>
+    <p>
+      El historial de reservas puede conservarse de forma anonimizada con fines estadísticos.
+    </p>
+
+    <h2>7. Tus derechos</h2>
+    <p>Tienes derecho a:</p>
+    <ul>
+      <li><strong>Acceder</strong> a los datos que tenemos sobre ti</li>
+      <li><strong>Corregir</strong> información inexacta desde la configuración de tu perfil</li>
+      <li><strong>Eliminar</strong> tu cuenta y tus datos enviando un correo a <a href="mailto:soporte@buqui.app">soporte@buqui.app</a></li>
+      <li><strong>Portabilidad:</strong> solicitar una copia de tus datos en formato legible</li>
+      <li><strong>Revocar</strong> el permiso de notificaciones en cualquier momento desde la configuración de tu teléfono</li>
+    </ul>
+
+    <h2>8. Menores de edad</h2>
+    <p>
+      Buqui no está dirigida a menores de 13 años. No recopilamos intencionalmente información
+      de menores. Si eres padre o tutor y crees que tu hijo ha proporcionado datos personales,
+      contáctanos para eliminarlos.
+    </p>
+
+    <h2>9. Cambios a esta política</h2>
+    <p>
+      Podemos actualizar esta política ocasionalmente. Te notificaremos mediante la app o por
+      correo electrónico cuando haya cambios importantes. La fecha de última actualización
+      aparece siempre al inicio de este documento.
+    </p>
+
+    <h2>10. Contacto</h2>
+    <p>
+      Para cualquier pregunta, solicitud o reclamo relacionado con tu privacidad:
+    </p>
+    <ul>
+      <li>Correo: <a href="mailto:soporte@buqui.app">soporte@buqui.app</a></li>
+      <li>App: Buqui — disponible en Google Play Store</li>
+    </ul>
+  </div>
+</main>
+
+<footer>
+  <p>© 2025 Buqui. Todos los derechos reservados.</p>
+</footer>
+
+</body>
+</html>
