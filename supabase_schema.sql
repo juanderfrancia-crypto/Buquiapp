@@ -157,9 +157,8 @@ BEGIN
       AND b.booking_date = NEW.booking_date
       AND b.status <> 'cancelled'
       AND b.id <> NEW.id
-      AND (
-        (b.start_time, b.end_time) OVERLAPS (NEW.start_time, NEW.end_time)
-      )
+      AND b.start_time < NEW.end_time
+      AND b.end_time > NEW.start_time
     ) THEN
       RAISE EXCEPTION 'Double booking: time slot already reserved';
     END IF;
@@ -286,6 +285,10 @@ CREATE INDEX IF NOT EXISTS idx_services_shop_active
 -- Hot path: pantalla Home del cliente (negocios activos por tipo)
 CREATE INDEX IF NOT EXISTS idx_barbershops_owner
   ON public.barbershops(owner_id);
+
+-- Hot path: envío de push notifications al barbero
+CREATE INDEX IF NOT EXISTS idx_users_push_token
+  ON public.users(push_token) WHERE push_token IS NOT NULL;
 
 -- ============================================================
 -- MIGRACIÓN REQUERIDA: eliminar constraint UTC en booking_date
