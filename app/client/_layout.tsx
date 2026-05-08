@@ -53,11 +53,9 @@ export default function ClientLayout() {
         }}
       />
       {/* Hidden screens - no tab visible */}
-      <Tabs.Screen name="index"          options={{ href: null }} />
-      <Tabs.Screen name="[shopId]"       options={{ href: null }} />
-      <Tabs.Screen name="my-bookings"    options={{ href: null }} />
+      <Tabs.Screen name="index"           options={{ href: null }} />
+      <Tabs.Screen name="[shopId]"        options={{ href: null }} />
       <Tabs.Screen name="booking-confirm" options={{ href: null }} />
-      <Tabs.Screen name="shop"           options={{ href: null }} />
     </Tabs>
   );
 }
