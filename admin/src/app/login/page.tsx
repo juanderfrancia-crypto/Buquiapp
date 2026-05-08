@@ -54,8 +54,8 @@ function LoginForm() {
       <div className="w-full max-w-sm relative z-10">
         {/* Logo */}
         <div className="text-center mb-10">
-          <div className="w-20 h-20 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center mx-auto mb-5 shadow-2xl shadow-black/40">
-            <img src="/icono.png" alt="Buqui" className="w-12 h-12 rounded-xl" />
+          <div className="w-20 h-20 rounded-2xl bg-white flex items-center justify-center mx-auto mb-5 shadow-2xl shadow-black/50">
+            <img src="/icono.png" alt="Buqui" className="w-14 h-14 rounded-xl" />
           </div>
           <h1 className="text-white font-black text-3xl tracking-tight">Buqui</h1>
           <p className="text-white/50 text-sm mt-1.5 font-medium tracking-wide uppercase">Panel de Administración</p>
