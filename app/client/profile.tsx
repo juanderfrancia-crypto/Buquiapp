@@ -241,7 +241,11 @@ export default function ProfileScreen() {
                         .toLocaleDateString('es-CO', { day: 'numeric', month: 'short' }).replace('.', '')}
                     </Text>
                     <Text style={styles.statNextTime}>
-                      {stats.nextBooking.start_time?.slice(0, 5)}
+                      {(() => {
+                        const [h, m] = (stats.nextBooking.start_time ?? '').split(':');
+                        const hour = parseInt(h, 10);
+                        return `${hour % 12 || 12}:${m} ${hour < 12 ? 'AM' : 'PM'}`;
+                      })()}
                     </Text>
                   </>
                 ) : (
